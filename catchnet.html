@@ -1,0 +1,1724 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CATchNet — Smart Detection for Energy</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --yellow:#FFD600;--yellow-dk:#E8C000;--accent:#2D2B5E;--accent-hv:#1a1940;
+      --white:#fff;--bg:#F5F7FA;--text:#1A1A2E;--muted:#6B7280;--border:#E5E7EB;
+      --danger:#DC2626;--warn:#F59E0B;--ok:#16A34A;
+      --danger-bg:#FEF2F2;--warn-bg:#FFFBEB;--ok-bg:#F0FDF4;
+      --sidebar:200px;--bar:64px;--r:8px;
+      --sh:0 1px 3px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.08);
+      --sh-md:0 4px 6px rgba(0,0,0,.1),0 2px 4px rgba(0,0,0,.06)
+    }
+    body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
+
+    /* ---- SCREEN TOGGLE ---- */
+    .screen{display:none}
+    .screen.active{display:flex}
+
+    /* ---- LOGIN ---- */
+    #screen-login{min-height:100vh;align-items:center;justify-content:center;
+      background:linear-gradient(135deg,var(--yellow) 0%,var(--yellow-dk) 55%,#c9a800 100%)}
+    .login-card{background:var(--white);border-radius:16px;padding:48px 40px;
+      width:100%;max-width:420px;box-shadow:var(--sh-md)}
+    .login-logo{text-align:center;margin-bottom:32px}
+    .login-logo__icon{width:100px;height:100px;border-radius:50%;overflow:hidden;
+      display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;
+      box-shadow:0 4px 16px rgba(0,0,0,.15)}
+    .login-logo__icon img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+    .login-logo__title{font-size:28px;font-weight:800;color:var(--accent);letter-spacing:-.5px}
+    .login-logo__sub{font-size:13px;color:var(--muted);margin-top:4px;font-style:italic}
+    .form-group{margin-bottom:20px}
+    .form-label{display:block;font-size:14px;font-weight:600;margin-bottom:6px}
+    .form-input,.form-select,.form-textarea{width:100%;padding:10px 14px;border:1.5px solid var(--border);
+      border-radius:var(--r);font-size:14px;outline:none;background:var(--white);
+      color:var(--text);transition:border-color .2s;font-family:inherit}
+    .form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--accent)}
+    .form-textarea{resize:vertical;min-height:100px}
+    .login-error{color:var(--danger);font-size:13px;margin-top:8px;display:none}
+    .login-note{text-align:center;margin-top:20px;font-size:12px;color:var(--muted)}
+
+    /* ---- BUTTONS ---- */
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+      padding:11px 22px;border:none;border-radius:var(--r);font-size:14px;font-weight:600;
+      cursor:pointer;transition:background .18s,transform .1s;text-decoration:none;font-family:inherit}
+    .btn:active{transform:scale(.98)}
+    .btn--primary{background:var(--accent);color:var(--white);width:100%}
+    .btn--primary:hover{background:var(--accent-hv)}
+    .btn--yellow{background:var(--yellow);color:var(--accent)}
+    .btn--yellow:hover{background:var(--yellow-dk)}
+    .btn--outline{background:transparent;border:1.5px solid var(--border);color:var(--text)}
+    .btn--outline:hover{background:var(--bg)}
+    .btn--sm{padding:7px 15px;font-size:13px;width:auto}
+    .btn--danger{background:var(--danger);color:var(--white)}
+    .w-full{width:100%}
+
+    /* ---- APP SHELL ---- */
+    #screen-app{min-height:100vh;flex-direction:column}
+    .app-layout{display:flex;min-height:100vh}
+
+    /* SIDEBAR */
+    .sidebar{width:var(--sidebar);background:var(--yellow);display:flex;flex-direction:column;
+      position:fixed;top:0;left:0;bottom:0;z-index:100;transition:transform .3s}
+    .sidebar__hd{padding:18px 14px 14px;display:flex;align-items:center;
+      justify-content:space-between;border-bottom:1px solid rgba(0,0,0,.08)}
+    .sidebar__logo{display:flex;align-items:center;gap:9px}
+    .sidebar__logo-ico{width:38px;height:38px;border-radius:50%;overflow:hidden;flex-shrink:0;
+      box-shadow:0 1px 4px rgba(0,0,0,.18)}
+    .sidebar__logo-ico img{width:100%;height:100%;object-fit:cover;display:block}
+    .sidebar__logo-name{font-size:15px;font-weight:800;color:var(--accent);line-height:1.1}
+    .sidebar__logo-tag{font-size:9px;color:rgba(0,0,0,.5);font-style:italic}
+    .sidebar__ham{background:none;border:none;cursor:pointer;font-size:20px;color:var(--accent);padding:4px}
+    .sidebar__actions{padding:14px;border-bottom:1px solid rgba(0,0,0,.08)}
+    .sidebar__act-btn{width:38px;height:38px;background:var(--white);border:none;border-radius:var(--r);
+      display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:17px;
+      color:var(--accent);box-shadow:var(--sh);transition:box-shadow .2s}
+    .sidebar__act-btn:hover{box-shadow:var(--sh-md)}
+    .sidebar__nav{flex:1;padding:14px 10px;overflow-y:auto}
+    .sidebar__nav-item{display:flex;flex-direction:column;align-items:center;gap:5px;
+      padding:11px 6px;border-radius:var(--r);cursor:pointer;transition:background .18s;
+      text-align:center;margin-bottom:6px;border:none;background:none;width:100%;color:var(--text)}
+    .sidebar__nav-item:hover,.sidebar__nav-item.active{background:rgba(0,0,0,.11)}
+    .sidebar__nav-ico{width:34px;height:34px;background:rgba(0,0,0,.1);border-radius:50%;
+      display:flex;align-items:center;justify-content:center;font-size:17px;transition:background .18s}
+    .sidebar__nav-item.active .sidebar__nav-ico{background:var(--accent);color:var(--white)}
+    .sidebar__nav-lbl{font-size:10.5px;font-weight:600;color:var(--accent);line-height:1.3}
+    .sidebar__ft{padding:14px;border-top:1px solid rgba(0,0,0,.08)}
+    .sidebar__user{display:flex;align-items:center;gap:9px}
+    .sidebar__user-av{width:30px;height:30px;background:var(--accent);border-radius:50%;
+      display:flex;align-items:center;justify-content:center;color:var(--white);
+      font-size:13px;font-weight:700;flex-shrink:0}
+    .sidebar__user-name{font-size:12px;font-weight:700;color:var(--accent);
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .sidebar__user-role{font-size:10px;color:rgba(0,0,0,.5)}
+
+    /* MAIN */
+    .main-content{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column;min-height:100vh}
+    .main-hd{background:var(--white);padding:0 28px;height:var(--bar);display:flex;
+      align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);
+      position:sticky;top:0;z-index:50;box-shadow:var(--sh)}
+    .main-hd__title{font-size:19px;font-weight:700}
+    .main-hd__right{display:flex;align-items:center;gap:14px}
+    .notif-btn{position:relative;background:none;border:none;cursor:pointer;font-size:22px;
+      color:var(--muted);padding:4px}
+    .badge{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;
+      background:var(--danger);color:var(--white);border-radius:50%;font-size:10px;font-weight:700;
+      position:absolute;top:-2px;right:-2px}
+    .page-content{padding:28px;flex:1}
+
+    /* VIEWS */
+    .view{display:none}.view.active{display:block}
+
+    /* ---- COMPONENTS ---- */
+    .sec-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+    .sec-title{font-size:21px;font-weight:700;display:flex;align-items:center;gap:8px}
+    .card{background:var(--white);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
+    .card--p{padding:22px}
+    .mb-20{margin-bottom:20px}.mb-24{margin-bottom:24px}
+
+    /* STATS */
+    .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:22px}
+    .stat-card{background:var(--white);border-radius:var(--r);padding:18px;
+      box-shadow:var(--sh);border-left:4px solid transparent}
+    .stat-card--danger{border-left-color:var(--danger)}
+    .stat-card--warn{border-left-color:var(--warn)}
+    .stat-card--ok{border-left-color:var(--ok)}
+    .stat-card--accent{border-left-color:var(--accent)}
+    .stat-lbl{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;
+      letter-spacing:.5px;margin-bottom:8px}
+    .stat-val{font-size:30px;font-weight:800;line-height:1;margin-bottom:4px}
+    .stat-sub{font-size:12px;color:var(--muted)}
+
+    /* TAGS */
+    .tag{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;
+      border-radius:20px;font-size:12px;font-weight:600}
+    .tag--danger{background:var(--danger-bg);color:var(--danger)}
+    .tag--warn{background:var(--warn-bg);color:#92400E}
+    .tag--ok{background:var(--ok-bg);color:var(--ok)}
+    .tag--muted{background:#F3F4F6;color:var(--muted)}
+
+    /* UNIT CARDS (matches reference image) */
+    .unit-list{display:flex;flex-direction:column}
+    .unit-card{display:flex;align-items:stretch;background:var(--white);
+      border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
+    .unit-card:first-child{border-radius:var(--r) var(--r) 0 0}
+    .unit-card:last-child{border-radius:0 0 var(--r) var(--r);border-bottom:none}
+    .unit-card:hover{background:#FFFDE7}
+    .unit-card__thumb{width:96px;height:88px;background:#E5E7EB;display:flex;
+      align-items:center;justify-content:center;font-size:30px;flex-shrink:0}
+    .unit-card__body{flex:1;padding:11px 14px}
+    .unit-card__addr{font-size:14px;font-weight:700;margin-bottom:4px}
+    .unit-card__desc{font-size:12px;color:var(--muted);line-height:1.4;margin-bottom:7px}
+    .unit-card__meta{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--muted)}
+    .unit-card__loc{font-size:11px;color:var(--muted);padding:0 10px;
+      display:flex;align-items:flex-end;padding-bottom:11px;white-space:nowrap}
+    .unit-card__arrow{padding:0 14px;display:flex;align-items:center;color:var(--muted);font-size:18px}
+
+    /* PRIORITY LEGEND */
+    .prio-legend{background:#F9FAFB;border:1px solid var(--border);border-radius:var(--r);
+      padding:13px 18px;margin:14px 0;font-size:13px;color:var(--muted);
+      display:flex;flex-direction:column;gap:4px}
+    .prio-legend strong{display:block;color:var(--text);margin-bottom:4px;font-size:14px}
+    .prio-legend__row{display:flex;align-items:center;gap:8px}
+
+    /* FILTER BAR */
+    .filter-bar{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;align-items:center}
+    .filter-bar__search{flex:1;min-width:180px;position:relative}
+    .filter-bar__input{width:100%;padding:9px 12px 9px 36px;border:1.5px solid var(--border);
+      border-radius:var(--r);font-size:14px;outline:none;background:var(--white);transition:border-color .2s}
+    .filter-bar__input:focus{border-color:var(--accent)}
+    .filter-bar__ico{position:absolute;left:11px;top:50%;transform:translateY(-50%);
+      color:var(--muted);font-size:15px;pointer-events:none}
+    .filter-bar__select{padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--r);
+      font-size:13px;background:var(--white);cursor:pointer;outline:none;color:var(--text)}
+    .filter-bar__select:focus{border-color:var(--accent)}
+
+    /* TABLE */
+    .table-wrap{overflow-x:auto}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    thead th{background:#F9FAFB;padding:11px 14px;text-align:left;font-size:11px;
+      font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;
+      border-bottom:1px solid var(--border)}
+    tbody tr{border-bottom:1px solid var(--border);transition:background .15s}
+    tbody tr:hover{background:#FAFAFA}
+    tbody tr:last-child{border-bottom:none}
+    tbody td{padding:12px 14px;vertical-align:middle}
+
+    /* FORM GRID */
+    .fg{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:18px}
+    .fg--full{grid-column:1/-1}
+    .form-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:22px;
+      padding-top:22px;border-top:1px solid var(--border)}
+
+    /* ALERT BANNER */
+    .alert-banner{display:flex;align-items:flex-start;gap:11px;padding:13px 14px;
+      border-radius:var(--r);margin-bottom:14px;font-size:14px}
+    .alert-banner--danger{background:var(--danger-bg);color:var(--danger);border:1px solid #FECACA}
+    .alert-banner--warn{background:var(--warn-bg);color:#92400E;border:1px solid #FDE68A}
+    .alert-banner--ok{background:var(--ok-bg);color:var(--ok);border:1px solid #BBF7D0}
+    .alert-banner__ico{font-size:18px;flex-shrink:0}
+    .alert-banner__title{font-weight:700;margin-bottom:2px}
+
+    /* MAP */
+    .map-wrap{background:#2a6496 url('2.png') center/cover no-repeat;
+      border-radius:var(--r);position:relative;overflow:hidden;height:460px}
+    .map-dot{position:absolute;width:15px;height:15px;border-radius:50%;border:2.5px solid #fff;
+      cursor:pointer;transition:transform .2s,box-shadow .2s;z-index:2;
+      box-shadow:0 1px 4px rgba(0,0,0,.4)}
+    .map-dot:hover{transform:scale(1.6);box-shadow:0 2px 10px rgba(0,0,0,.5)}
+    .map-dot--danger{background:var(--danger)}
+    .map-dot--warn{background:var(--warn)}
+    .map-dot--ok{background:var(--ok);cursor:default}
+    .map-dot--ok:hover{transform:scale(1.2)}
+    @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.5)}70%{box-shadow:0 0 0 8px rgba(220,38,38,0)}}
+    .map-dot--danger{animation:pulse 1.8s infinite}
+    .map-tip{position:absolute;bottom:130%;left:50%;transform:translateX(-50%);
+      background:var(--accent);color:#fff;padding:6px 10px;border-radius:6px;
+      font-size:11px;white-space:nowrap;pointer-events:none;opacity:0;
+      transition:opacity .2s;line-height:1.4;text-align:center}
+    .map-tip strong{display:block;font-size:12px}
+    .map-tip em{font-style:normal;font-size:10px;opacity:.85}
+    .map-dot:hover .map-tip{opacity:1}
+    .map-legend{position:absolute;bottom:14px;right:14px;background:rgba(255,255,255,.92);
+      border-radius:var(--r);padding:11px 14px;font-size:12px;box-shadow:var(--sh)}
+    .map-legend__title{font-weight:700;margin-bottom:7px;color:var(--text)}
+    .map-legend__row{display:flex;align-items:center;gap:7px;margin-bottom:4px}
+    .map-legend__dot{width:9px;height:9px;border-radius:50%}
+
+    /* BAR CHART */
+    .bar-chart{display:flex;align-items:flex-end;gap:6px;height:160px;padding:0 4px}
+    .bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;
+      height:100%;justify-content:flex-end}
+    .bar{width:100%;border-radius:4px 4px 0 0}
+    .bar-val{font-size:10px;color:var(--muted)}
+    .bar-months{display:flex;justify-content:space-between;padding:0 4px;
+      margin-top:4px;font-size:10px;color:var(--muted)}
+
+    /* ALERT ITEMS */
+    .alert-list{display:flex;flex-direction:column;gap:10px}
+    .alert-item{display:flex;align-items:flex-start;gap:11px;padding:13px;
+      border-radius:var(--r);border:1px solid var(--border);background:var(--white);transition:box-shadow .15s}
+    .alert-item:hover{box-shadow:var(--sh)}
+    .alert-item__ico{width:34px;height:34px;border-radius:50%;display:flex;
+      align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+    .alert-item--danger .alert-item__ico{background:var(--danger-bg)}
+    .alert-item--warn .alert-item__ico{background:var(--warn-bg)}
+    .alert-item__body{flex:1}
+    .alert-item__title{font-size:13px;font-weight:600;margin-bottom:2px}
+    .alert-item__desc{font-size:12px;color:var(--muted)}
+    .alert-item__time{font-size:11px;color:var(--muted);flex-shrink:0}
+
+    /* DASHBOARD GRID */
+    .dash-grid{display:grid;grid-template-columns:2fr 1fr;gap:20px}
+
+    /* MODAL */
+    .modal-bd{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;
+      display:none;align-items:center;justify-content:center;padding:20px}
+    .modal-bd.open{display:flex}
+    .modal{background:var(--white);border-radius:12px;padding:28px;width:100%;
+      max-width:540px;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+    .modal__hd{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px}
+    .modal__title{font-size:17px;font-weight:700}
+    .modal__close{background:none;border:none;font-size:19px;cursor:pointer;color:var(--muted);padding:4px}
+
+    /* TOAST */
+    .toast{position:fixed;bottom:22px;right:22px;background:var(--accent);color:#fff;
+      padding:13px 18px;border-radius:var(--r);font-size:14px;font-weight:600;
+      box-shadow:var(--sh-md);z-index:500;transform:translateY(80px);opacity:0;
+      transition:transform .3s,opacity .3s}
+    .toast.show{transform:translateY(0);opacity:1}
+
+    /* ── Nielsen heuristic additions ───────────────────── */
+    /* H1 — system status pill */
+    .status-pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;
+      color:var(--ok);white-space:nowrap}
+    .status-pill__dot{width:7px;height:7px;background:var(--ok);border-radius:50%;flex-shrink:0}
+    /* H6 — map instruction banner */
+    .map-instruction{background:rgba(45,43,94,.86);color:#fff;border-radius:var(--r);
+      padding:9px 14px;font-size:12px;margin-bottom:10px;
+      display:flex;align-items:center;gap:8px}
+    /* H8 — dismissible alert banner */
+    .alert-banner{position:relative;padding-right:38px}
+    .alert-dismiss{position:absolute;top:50%;right:10px;transform:translateY(-50%);
+      background:none;border:none;cursor:pointer;font-size:15px;opacity:.55;
+      line-height:1;color:inherit;padding:4px}
+    .alert-dismiss:hover{opacity:1}
+    /* H9 — inline field error */
+    .field-err{color:var(--danger);font-size:12px;margin-top:4px;display:none}
+    .field-err.show{display:block}
+    /* H10 — help button */
+    .help-btn{width:30px;height:30px;border-radius:50%;background:var(--accent);
+      color:var(--white);border:none;cursor:pointer;font-size:13px;font-weight:700;
+      display:inline-flex;align-items:center;justify-content:center;
+      transition:background .18s;flex-shrink:0}
+    .help-btn:hover{background:var(--accent-hv)}
+    /* H4/H5 — required fields note */
+    .req-note{font-size:12px;color:var(--muted);margin-bottom:14px}
+    /* H7 — quick-action on unit card */
+    .unit-card__qa{padding:0 10px 0 0;display:flex;align-items:center}
+    /* H6 — sidebar action label */
+    .sidebar__act-item{display:flex;flex-direction:column;align-items:center;gap:3px}
+    .sidebar__act-lbl{font-size:9.5px;color:var(--accent);font-weight:600}
+    /* H1 — loading button state */
+    .btn[data-loading]{opacity:.65;pointer-events:none}
+    /* H5/H9 — visual feedback em campos inválidos após tentativa de submit */
+    .was-validated .form-input:invalid,
+    .was-validated .form-select:invalid,
+    .was-validated .form-textarea:invalid{border-color:var(--danger);box-shadow:0 0 0 2px rgba(220,38,38,.12)}
+    .was-validated .form-input:valid,
+    .was-validated .form-select:valid{border-color:var(--ok)}
+    /* H10 — tabs do modal de ajuda */
+    .help-tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:16px;gap:0}
+    .help-tab{flex:1;padding:9px 6px;background:none;border:none;cursor:pointer;font-size:13px;
+      font-weight:600;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px;
+      transition:color .18s}
+    .help-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+    .help-pane{display:none;flex-direction:column;gap:11px;max-height:58vh;overflow-y:auto;padding-right:4px}
+    .help-pane.active{display:flex}
+    /* H7 — atalhos de teclado (kbd label) */
+    .kbd{display:inline-block;background:#F3F4F6;border:1px solid #D1D5DB;border-radius:4px;
+      padding:1px 6px;font-size:11px;font-family:monospace;color:var(--text);line-height:1.6}
+
+    /* RESPONSIVE */
+    @media(max-width:768px){
+      .sidebar{transform:translateX(-100%)}
+      .sidebar.open{transform:translateX(0)}
+      .main-content{margin-left:0}
+      .stats-grid{grid-template-columns:1fr 1fr}
+      .page-content{padding:18px 14px}
+      .main-hd{padding:0 14px}
+      .dash-grid{grid-template-columns:1fr}
+      .fg{grid-template-columns:1fr}
+    }
+    @media(max-width:480px){.stats-grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+
+<!-- ===================== LOGIN ===================== -->
+<div id="screen-login" class="screen active">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo__icon"><img src="0.png" alt="CATchNet Logo"></div>
+      <div class="login-logo__title">CATchNet</div>
+      <div class="login-logo__sub">Smart Detection for Energy</div>
+    </div>
+    <form onsubmit="doLogin(event)">
+      <div class="form-group">
+        <label class="form-label" for="l-user">Usuário (matrícula)</label>
+        <input class="form-input" id="l-user" type="text" placeholder="Ex: func.12345" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="l-pass">Senha</label>
+        <input class="form-input" id="l-pass" type="password" placeholder="••••••••" required>
+        <!-- H9: mensagem de erro específica por tipo de problema -->
+        <div id="l-err" class="login-error"></div>
+      </div>
+      <button type="submit" class="btn btn--primary">Entrar no Sistema</button>
+    </form>
+    <p class="login-note">Acesso restrito a funcionários · LGPD</p>
+  </div>
+</div>
+
+<!-- ===================== APP ===================== -->
+<div id="screen-app" class="screen">
+  <div class="app-layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar__hd">
+        <div class="sidebar__logo">
+          <div class="sidebar__logo-ico"><img src="0.png" alt="CATchNet"></div>
+          <div>
+            <div class="sidebar__logo-name">CATchNet</div>
+            <div class="sidebar__logo-tag">Smart Detection for Energy</div>
+          </div>
+        </div>
+        <button class="sidebar__ham" onclick="toggleSidebar()">☰</button>
+      </div>
+
+      <div class="sidebar__actions">
+        <!-- H6: label visível no botão de ação rápida -->
+        <div class="sidebar__act-item">
+          <button class="sidebar__act-btn" title="Nova leitura" onclick="go('view-leitura')">✏️</button>
+          <span class="sidebar__act-lbl">Nova Leitura</span>
+        </div>
+      </div>
+
+      <nav class="sidebar__nav">
+        <button class="sidebar__nav-item active" id="nav-unidades" onclick="go('view-unidades')">
+          <div class="sidebar__nav-ico">🏠</div>
+          <span class="sidebar__nav-lbl">Seleção de Unidade Consumidora</span>
+        </button>
+        <button class="sidebar__nav-item" id="nav-mapa" onclick="go('view-mapa')">
+          <div class="sidebar__nav-ico">🗺️</div>
+          <span class="sidebar__nav-lbl">Mapa de Consumo</span>
+        </button>
+        <button class="sidebar__nav-item" id="nav-leitura" onclick="go('view-leitura')">
+          <div class="sidebar__nav-ico">📊</div>
+          <span class="sidebar__nav-lbl">Leitura de Consumo</span>
+        </button>
+        <button class="sidebar__nav-item" id="nav-tecnico" onclick="go('view-tecnico')">
+          <div class="sidebar__nav-ico">👷</div>
+          <span class="sidebar__nav-lbl">Enviar Técnico</span>
+        </button>
+        <button class="sidebar__nav-item" id="nav-historico" onclick="go('view-historico')">
+          <div class="sidebar__nav-ico">📋</div>
+          <span class="sidebar__nav-lbl">Histórico de Dados</span>
+        </button>
+        <button class="sidebar__nav-item" id="nav-painel" onclick="go('view-painel')">
+          <div class="sidebar__nav-ico">📈</div>
+          <span class="sidebar__nav-lbl">Painel de Indicadores</span>
+        </button>
+      </nav>
+
+      <div class="sidebar__ft">
+        <div class="sidebar__user">
+          <div class="sidebar__user-av">MJ</div>
+          <div>
+            <div class="sidebar__user-name">Matheus Johnsson</div>
+            <div class="sidebar__user-role">Analista de Campo</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main-content">
+      <header class="main-hd">
+        <h1 class="main-hd__title" id="hd-title">Unidades Consumidoras</h1>
+        <div class="main-hd__right">
+          <!-- H1: sistema online + relógio em tempo real -->
+          <span class="status-pill" title="Status do sistema">
+            <span class="status-pill__dot"></span>
+            Online · <span id="clock-time">--:--</span>
+          </span>
+          <!-- H10: botão de ajuda -->
+          <button class="help-btn" onclick="openModal('modal-help')" title="Ajuda e Glossário">?</button>
+          <button class="notif-btn" onclick="openModal('modal-alerts')" title="Alertas">
+            🔔<span class="badge">3</span>
+          </button>
+          <button class="btn btn--outline btn--sm" onclick="doLogout()">Sair</button>
+        </div>
+      </header>
+
+      <div class="page-content">
+
+        <!-- ===== VIEW: UNIDADES ===== -->
+        <div id="view-unidades" class="view active">
+          <div class="sec-hd">
+            <h2 class="sec-title">Unidades Consumidoras</h2>
+            <button class="btn btn--yellow btn--sm" onclick="go('view-leitura')">+ Nova Leitura</button>
+          </div>
+
+          <div class="filter-bar">
+            <div class="filter-bar__search">
+              <span class="filter-bar__ico">🔍</span>
+              <input class="filter-bar__input" type="text" placeholder="Pesquisar endereço..."
+                oninput="filterUnits(this.value)">
+            </div>
+            <select class="filter-bar__select" id="filter-prio-sel" onchange="filterByPrio(this.value)">
+              <option value="">Todos os riscos</option>
+              <option value="alta">Alta prioridade (&gt;70%)</option>
+              <option value="media">Média prioridade (40–70%)</option>
+              <option value="baixa">Baixa prioridade (10–40%)</option>
+            </select>
+            <select class="filter-bar__select" id="sort-sel" onchange="doSort(this.value)">
+              <option value="">Ordenar por…</option>
+              <option value="risk">Risco (maior primeiro)</option>
+              <option value="kwh">Consumo (kWh)</option>
+              <option value="time">Data da leitura (recente)</option>
+            </select>
+          </div>
+
+          <div class="card">
+            <div class="unit-list" id="unit-list"></div>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px">
+            <span id="unit-count" style="font-size:12px;color:var(--muted)"></span>
+            <div style="display:flex;gap:10px">
+              <button class="btn btn--outline btn--sm" onclick="goBack()">← Voltar</button>
+              <button class="btn btn--primary btn--sm" onclick="go('view-tecnico')">Próximo: Enviar Técnico →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== VIEW: MAPA ===== -->
+        <div id="view-mapa" class="view">
+          <div class="sec-hd">
+            <h2 class="sec-title">Mapa de Consumo</h2>
+            <div style="display:flex;gap:8px">
+              <select class="filter-bar__select" onchange="filterMapDots(this.value)">
+                <option value="">Mostrar todos</option>
+                <option value="danger">Alta probabilidade de furto (&gt;70%)</option>
+                <option value="warn">Média probabilidade (40–70%)</option>
+                <option value="ok">Baixa probabilidade (&lt;40%)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="filter-bar">
+            <div class="filter-bar__search">
+              <span class="filter-bar__ico">🔍</span>
+              <input class="filter-bar__input" id="map-search-input" type="text"
+                placeholder="Pesquisar endereço no mapa…"
+                oninput="filterMapDotsByText(this.value)">
+            </div>
+            <button class="btn btn--yellow btn--sm" onclick="doMapSearch()">Buscar</button>
+          </div>
+
+          <!-- H6: instrução visível para o usuário entender a interação -->
+          <div class="map-instruction">
+            <span>🖱️</span>
+            <span>Passe o cursor sobre os pontos para ver detalhes. <strong>Clique nos pontos coloridos (risco alto/médio)</strong> para abrir diretamente o formulário de envio de técnico.</span>
+          </div>
+
+          <div class="map-wrap">
+            <!-- ● pontos de risco — clicáveis (danger/warn) redirecionam para Enviar Técnico -->
+
+            <div class="map-dot map-dot--danger" style="top:38%;left:57%" data-risk="danger"
+              data-addr="travessa da boa vista"
+              onclick="goToTecnico('UC-007 · Travessa da Boa Vista, 7 (91%)')">
+              <div class="map-tip"><strong>Travessa da Boa Vista, 7</strong><em>Risco: 91% · Clique para enviar técnico</em></div>
+            </div>
+            <div class="map-dot map-dot--danger" style="top:52%;left:22%" data-risk="danger"
+              data-addr="rua das acácias"
+              onclick="goToTecnico('UC-001 · Rua das Acácias, 63 (87%)')">
+              <div class="map-tip"><strong>Rua das Acácias, 63</strong><em>Risco: 87% · Clique para enviar técnico</em></div>
+            </div>
+            <div class="map-dot map-dot--danger" style="top:46%;left:42%" data-risk="danger"
+              data-addr="av. vital brasil filho"
+              onclick="goToTecnico('UC-003 · Av. Vital Brasil Filho, 154 (79%)')">
+              <div class="map-tip"><strong>Av. Vital Brasil Filho, 154</strong><em>Risco: 79% · Clique para enviar técnico</em></div>
+            </div>
+            <div class="map-dot map-dot--warn" style="top:41%;left:28%" data-risk="warn"
+              data-addr="rua belém"
+              onclick="goToTecnico('UC-009 · Rua Belém, 88 (61%)')">
+              <div class="map-tip"><strong>Rua Belém, 88</strong><em>Risco: 61% · Clique para enviar técnico</em></div>
+            </div>
+            <div class="map-dot map-dot--warn" style="top:34%;left:53%" data-risk="warn"
+              data-addr="rua sete de setembro"
+              onclick="goToTecnico('UC-002 · Rua Sete de Setembro, 18 (58%)')">
+              <div class="map-tip"><strong>Rua Sete de Setembro, 18</strong><em>Risco: 58% · Clique para enviar técnico</em></div>
+            </div>
+            <div class="map-dot map-dot--warn" style="top:63%;left:16%" data-risk="warn"
+              data-addr="rua das flores"
+              onclick="goToTecnico('UC-004 · Rua das Flores, 200 (44%)')">
+              <div class="map-tip"><strong>Rua das Flores, 200</strong><em>Risco: 44% · Clique para enviar técnico</em></div>
+            </div>
+            <div class="map-dot map-dot--ok" style="top:25%;left:69%" data-risk="ok"
+              data-addr="rua das palmeiras">
+              <div class="map-tip"><strong>Rua das Palmeiras, 305</strong><em>Risco: 22% — Normal</em></div>
+            </div>
+            <div class="map-dot map-dot--ok" style="top:17%;left:80%" data-risk="ok"
+              data-addr="avenida central">
+              <div class="map-tip"><strong>Av. Central, 10</strong><em>Risco: 15% — Normal</em></div>
+            </div>
+
+            <div class="map-legend">
+              <div class="map-legend__title">Probabilidade de Furto</div>
+              <div class="map-legend__row"><div class="map-legend__dot" style="background:var(--danger)"></div>Alta (&gt;70%) — clicável</div>
+              <div class="map-legend__row"><div class="map-legend__dot" style="background:var(--warn)"></div>Média (40–70%) — clicável</div>
+              <div class="map-legend__row"><div class="map-legend__dot" style="background:var(--ok)"></div>Baixa (&lt;40%)</div>
+            </div>
+          </div>
+          <p style="text-align:right;font-size:11px;color:var(--muted);margin-top:6px;font-style:italic">Salvador, BA — dados simulados</p>
+        </div>
+
+        <!-- ===== VIEW: LEITURA ===== -->
+        <div id="view-leitura" class="view">
+          <div class="sec-hd"><h2 class="sec-title">Realizar Leitura de Consumo</h2></div>
+
+          <!-- H8: banner dismissível -->
+          <div class="alert-banner alert-banner--warn" id="leitura-warn">
+            <span class="alert-banner__ico">⚠️</span>
+            <div>
+              <div class="alert-banner__title">Atenção</div>
+              Certifique-se de que a unidade consumidora está cadastrada antes de registrar a leitura.
+            </div>
+            <button class="alert-dismiss" onclick="this.closest('.alert-banner').style.display='none'" title="Fechar">✕</button>
+          </div>
+
+          <div class="card card--p">
+            <form id="form-leitura" novalidate onsubmit="confirmLeitura(event)">
+              <p class="req-note">* Campos obrigatórios</p>
+              <div class="fg">
+                <div>
+                  <label class="form-label" for="f-ucid">
+                    ID da Unidade Consumidora *
+                    <button type="button" class="help-btn" style="width:18px;height:18px;font-size:10px;vertical-align:middle;margin-left:5px"
+                      onclick="toast('Formato: UC- seguido de 5 dígitos. Ex: UC-00123. Consulte o SDE para obter o ID.')">?</button>
+                  </label>
+                  <input class="form-input" id="f-ucid" type="text" placeholder="Ex: UC-00123"
+                    pattern="UC-\d{5}" required
+                    oninvalid="showFieldErr('err-ucid','Formato inválido. Use UC-XXXXX, ex: UC-00123.')"
+                    oninput="clearFieldErr('err-ucid')">
+                  <span class="field-err" id="err-ucid"></span>
+                </div>
+                <div>
+                  <label class="form-label" for="f-addr">Endereço *</label>
+                  <input class="form-input" id="f-addr" type="text" placeholder="Rua, número, bairro" required
+                    oninvalid="showFieldErr('err-addr','Informe o endereço completo da unidade.')"
+                    oninput="clearFieldErr('err-addr')">
+                  <span class="field-err" id="err-addr"></span>
+                </div>
+                <div>
+                  <label class="form-label" for="f-kwh">Leitura Atual (kWh) *</label>
+                  <input class="form-input" id="f-kwh" type="number" placeholder="Ex: 3450" min="0" max="999999" required
+                    oninvalid="showFieldErr('err-kwh','Informe um valor entre 0 e 999.999 kWh.')"
+                    oninput="clearFieldErr('err-kwh')">
+                  <span class="field-err" id="err-kwh"></span>
+                </div>
+                <div>
+                  <label class="form-label">Leitura Anterior (kWh)</label>
+                  <input class="form-input" type="number"
+                    placeholder="Obtido automaticamente do SDE (Sistema da Distribuidora)"
+                    readonly style="background:#F9FAFB">
+                </div>
+                <div>
+                  <label class="form-label" for="leitura-date">Data da Leitura *</label>
+                  <input class="form-input" id="leitura-date" type="date" required
+                    oninvalid="showFieldErr('err-ldate','Selecione a data da leitura (não pode ser futura).')"
+                    oninput="clearFieldErr('err-ldate')">
+                  <span class="field-err" id="err-ldate"></span>
+                </div>
+                <div>
+                  <label class="form-label">Hora *</label>
+                  <input class="form-input" type="time" required>
+                </div>
+                <div>
+                  <label class="form-label">Funcionário Responsável</label>
+                  <input class="form-input" value="Matheus Johnsson" readonly style="background:#F9FAFB">
+                </div>
+                <div>
+                  <label class="form-label">Tipo de Medidor</label>
+                  <select class="form-select">
+                    <option>Smart Meter Digital (Medidor Inteligente)</option>
+                    <option>Medidor Analógico</option>
+                    <option>Medidor Eletrônico</option>
+                  </select>
+                </div>
+                <div class="fg--full">
+                  <label class="form-label">Observações</label>
+                  <textarea class="form-textarea"
+                    placeholder="Estado do medidor, lacre, anomalias visuais…"></textarea>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="button" class="btn btn--outline btn--sm" onclick="go('view-unidades')">Cancelar</button>
+                <button type="submit" class="btn btn--primary btn--sm">Registrar Leitura</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- ===== VIEW: TÉCNICO ===== -->
+        <div id="view-tecnico" class="view">
+          <div class="sec-hd"><h2 class="sec-title">Enviar Técnico para Verificação</h2></div>
+
+          <!-- H8: banner dismissível -->
+          <div class="alert-banner alert-banner--danger" id="tecnico-alert">
+            <span class="alert-banner__ico">🚨</span>
+            <div>
+              <div class="alert-banner__title">3 unidades com alta prioridade aguardando inspeção</div>
+              Probabilidade de furto acima de 70% — priorize o envio imediato.
+            </div>
+            <button class="alert-dismiss" onclick="this.closest('.alert-banner').style.display='none'" title="Fechar">✕</button>
+          </div>
+
+          <div class="card card--p mb-24">
+            <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Nova Solicitação de Visita</h3>
+            <form id="form-tecnico" novalidate onsubmit="confirmTecnico(event)">
+              <p class="req-note">* Campos obrigatórios</p>
+              <div class="fg">
+                <div>
+                  <label class="form-label">Unidade Consumidora *</label>
+                  <select id="tecnico-unit-select" class="form-select" required
+                    oninvalid="showFieldErr('err-tunit','Selecione a unidade consumidora.')"
+                    onchange="clearFieldErr('err-tunit')">
+                    <option value="">Selecione a unidade…</option>
+                    <option value="UC-007 · Travessa da Boa Vista, 7 (91%)">UC-007 · Travessa da Boa Vista, 7 (91%)</option>
+                    <option value="UC-001 · Rua das Acácias, 63 (87%)">UC-001 · Rua das Acácias, 63 (87%)</option>
+                    <option value="UC-003 · Av. Vital Brasil Filho, 154 (79%)">UC-003 · Av. Vital Brasil Filho, 154 (79%)</option>
+                    <option value="UC-009 · Rua Belém, 88 (61%)">UC-009 · Rua Belém, 88 (61%)</option>
+                    <option value="UC-002 · Rua Sete de Setembro, 18 (58%)">UC-002 · Rua Sete de Setembro, 18 (58%)</option>
+                    <option value="UC-004 · Rua das Flores, 200 (44%)">UC-004 · Rua das Flores, 200 (44%)</option>
+                  </select>
+                  <span class="field-err" id="err-tunit"></span>
+                </div>
+                <div>
+                  <label class="form-label">Técnico Responsável *</label>
+                  <select id="tecnico-resp-select" class="form-select" required
+                    oninvalid="showFieldErr('err-tresp','Selecione o técnico responsável.')"
+                    onchange="clearFieldErr('err-tresp')">
+                    <option value="">Selecione o técnico…</option>
+                    <option>Carlos Mendes · Zona Norte</option>
+                    <option>Ana Ferreira · Zona Sul</option>
+                    <option>Pedro Costa · Zona Leste</option>
+                    <option>Lucas Alves · Centro</option>
+                  </select>
+                  <span class="field-err" id="err-tresp"></span>
+                </div>
+                <div>
+                  <label class="form-label">Data Prevista *</label>
+                  <input class="form-input" type="date" id="tecnico-date" required
+                    oninvalid="showFieldErr('err-tdate','Selecione uma data a partir de hoje.')"
+                    oninput="clearFieldErr('err-tdate')">
+                  <span class="field-err" id="err-tdate"></span>
+                </div>
+                <div>
+                  <label class="form-label">Prioridade</label>
+                  <select class="form-select">
+                    <option>🔴 Alta — Suspeita confirmada por IA</option>
+                    <option>🟡 Média — Anomalia detectada</option>
+                    <option>🟢 Baixa — Verificação de rotina</option>
+                  </select>
+                </div>
+                <div class="fg--full">
+                  <label class="form-label">Motivo / Observações</label>
+                  <textarea class="form-textarea"
+                    placeholder="Resultado da análise de IA e informações relevantes para o técnico…"></textarea>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="button" class="btn btn--outline btn--sm" onclick="go('view-unidades')">Cancelar</button>
+                <button type="submit" class="btn btn--primary btn--sm">Enviar Solicitação</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="sec-hd" style="margin-top:24px">
+            <h3 style="font-size:15px;font-weight:700">Solicitações em Andamento</h3>
+          </div>
+          <div class="card">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Protocolo</th><th>Unidade</th><th>Técnico</th>
+                    <th>Data Prevista</th><th>Prioridade</th><th>Status</th><th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>#2026-0089</td><td>Travessa da Boa Vista, 7</td><td>Carlos Mendes</td>
+                    <td>18/05/2026</td><td><span class="tag tag--danger">Alta</span></td>
+                    <td><span class="tag tag--warn">Em campo</span></td>
+                    <td><button class="btn btn--outline btn--sm" onclick="openProtocolo('#2026-0089')">Ver</button></td>
+                  </tr>
+                  <tr>
+                    <td>#2026-0087</td><td>Rua das Acácias, 63</td><td>Pedro Costa</td>
+                    <td>20/05/2026</td><td><span class="tag tag--danger">Alta</span></td>
+                    <td><span class="tag tag--muted">Agendado</span></td>
+                    <td><button class="btn btn--outline btn--sm" onclick="openProtocolo('#2026-0087')">Ver</button></td>
+                  </tr>
+                  <tr>
+                    <td>#2026-0085</td><td>Av. Vital Brasil Filho, 154</td><td>Ana Ferreira</td>
+                    <td>22/05/2026</td><td><span class="tag tag--warn">Média</span></td>
+                    <td><span class="tag tag--muted">Agendado</span></td>
+                    <td><button class="btn btn--outline btn--sm" onclick="openProtocolo('#2026-0085')">Ver</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== VIEW: HISTÓRICO ===== -->
+        <div id="view-historico" class="view">
+          <div class="sec-hd">
+            <h2 class="sec-title">Histórico de Dados</h2>
+            <button class="btn btn--yellow btn--sm" id="export-btn" onclick="doExport()">⬇ Exportar Relatório</button>
+          </div>
+
+          <div class="card card--p mb-24">
+            <h3 style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:14px;text-transform:uppercase;letter-spacing:.5px">Filtros de Consulta</h3>
+            <div class="fg">
+              <div>
+                <label class="form-label">Unidade Consumidora</label>
+                <select class="form-select">
+                  <option>Todas as unidades</option>
+                  <option>UC-001 · Rua das Acácias, 63</option>
+                  <option>UC-003 · Av. Vital Brasil Filho, 154</option>
+                  <option>UC-007 · Travessa da Boa Vista, 7</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label">Data Inicial</label>
+                <input class="form-input" id="hist-date-ini" type="date" value="2026-01-01">
+              </div>
+              <div>
+                <label class="form-label">Data Final</label>
+                <input class="form-input" id="hist-date-fin" type="date" value="2026-05-18">
+              </div>
+              <div style="align-self:flex-end">
+                <button class="btn btn--primary w-full" id="consultar-btn" onclick="doConsultar()">Consultar</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="dash-grid mb-24">
+            <div class="card card--p">
+              <h3 style="font-size:14px;font-weight:700;margin-bottom:14px">Consumo Mensal (kWh) — UC-001</h3>
+              <div class="bar-chart" id="bar-chart"></div>
+              <div class="bar-months">
+                <span>Jan</span><span>Fev</span><span>Mar</span><span>Abr</span><span>Mai</span><span>Jun</span>
+                <span>Jul</span><span>Ago</span><span>Set</span><span>Out</span><span>Nov</span><span>Dez</span>
+              </div>
+            </div>
+            <div class="card card--p">
+              <h3 style="font-size:14px;font-weight:700;margin-bottom:14px">Análise de IA</h3>
+              <div style="display:flex;flex-direction:column;gap:11px;font-size:13px">
+                <div style="padding:11px;background:var(--danger-bg);border-radius:8px;border-left:4px solid var(--danger)">
+                  <div style="font-weight:700;color:var(--danger);margin-bottom:3px">Anomalia — Maio</div>
+                  <div style="color:var(--muted)">Consumo 148% acima da média. Probabilidade de furto: <strong>87%</strong></div>
+                </div>
+                <div style="padding:11px;background:var(--warn-bg);border-radius:8px;border-left:4px solid var(--warn)">
+                  <div style="font-weight:700;color:#92400E;margin-bottom:3px">Variação suspeita — Janeiro</div>
+                  <div style="color:var(--muted)">Queda brusca seguida de pico. Padrão associado a adulteração de medidor.</div>
+                </div>
+                <div style="padding:11px;background:var(--ok-bg);border-radius:8px;border-left:4px solid var(--ok)">
+                  <div style="font-weight:700;color:var(--ok);margin-bottom:3px">Períodos normais</div>
+                  <div style="color:var(--muted)">Out–Dez/2025 dentro dos parâmetros esperados.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div style="padding:18px 22px;border-bottom:1px solid var(--border)">
+              <h3 style="font-size:14px;font-weight:700">Registros de Leitura</h3>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Data</th><th>Unidade</th><th>Leitura (kWh)</th><th>Consumo</th><th>Variação</th><th>IA</th><th></th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>15/05/2026</td><td>UC-001</td><td>3.450</td><td>+420 kWh</td>
+                    <td style="color:var(--danger);font-weight:600">+148%</td>
+                    <td><span class="tag tag--danger">Anomalia</span></td>
+                    <td><button class="btn btn--outline btn--sm" onclick="toast('Detalhes da leitura de 15/05')">Detalhes</button></td>
+                  </tr>
+                  <tr>
+                    <td>15/04/2026</td><td>UC-001</td><td>3.030</td><td>+180 kWh</td>
+                    <td style="color:var(--warn);font-weight:600">+22%</td>
+                    <td><span class="tag tag--warn">Suspeito</span></td>
+                    <td><button class="btn btn--outline btn--sm" onclick="toast('Detalhes da leitura de 15/04')">Detalhes</button></td>
+                  </tr>
+                  <tr>
+                    <td>15/03/2026</td><td>UC-001</td><td>2.850</td><td>+170 kWh</td>
+                    <td style="color:var(--ok);font-weight:600">+3%</td>
+                    <td><span class="tag tag--ok">Normal</span></td>
+                    <td><button class="btn btn--outline btn--sm" onclick="toast('Detalhes da leitura de 15/03')">Detalhes</button></td>
+                  </tr>
+                  <tr>
+                    <td>15/02/2026</td><td>UC-001</td><td>2.680</td><td>+165 kWh</td>
+                    <td style="color:var(--ok);font-weight:600">-1%</td>
+                    <td><span class="tag tag--ok">Normal</span></td>
+                    <td><button class="btn btn--outline btn--sm" onclick="toast('Detalhes da leitura de 15/02')">Detalhes</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== VIEW: PAINEL ===== -->
+        <div id="view-painel" class="view">
+          <div class="sec-hd">
+            <h2 class="sec-title">Painel de Indicadores</h2>
+            <span id="painel-updated" style="font-size:12px;color:var(--muted)">Atualizado agora</span>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card stat-card--danger">
+              <div class="stat-lbl">Suspeitas de Furto (ativas)</div>
+              <div class="stat-val">23</div>
+              <div class="stat-sub">↑ 5 novas esta semana</div>
+            </div>
+            <div class="stat-card stat-card--warn">
+              <div class="stat-lbl">Anomalias Detectadas</div>
+              <div class="stat-val">47</div>
+              <div class="stat-sub">Últimos 30 dias</div>
+            </div>
+            <div class="stat-card stat-card--ok">
+              <div class="stat-lbl">Inspeções Concluídas</div>
+              <div class="stat-val">18</div>
+              <div class="stat-sub">↑ 12% vs. mês anterior</div>
+            </div>
+            <div class="stat-card stat-card--accent">
+              <div class="stat-lbl">Economia Estimada</div>
+              <div class="stat-val" style="font-size:22px">R$ 47.800</div>
+              <div class="stat-sub">Em perdas evitadas este mês</div>
+            </div>
+          </div>
+
+          <div class="dash-grid">
+            <div>
+              <div class="card card--p mb-20">
+                <h3 style="font-size:14px;font-weight:700;margin-bottom:14px">Alertas Recentes</h3>
+                <div class="alert-list">
+                  <div class="alert-item alert-item--danger">
+                    <div class="alert-item__ico">🚨</div>
+                    <div class="alert-item__body">
+                      <div class="alert-item__title">Furto provável — Travessa da Boa Vista, 7</div>
+                      <div class="alert-item__desc">Consumo zerado 15 dias + pico anômalo. Risco: 91%</div>
+                    </div>
+                    <div class="alert-item__time">Hoje 10:14</div>
+                  </div>
+                  <div class="alert-item alert-item--danger">
+                    <div class="alert-item__ico">⚡</div>
+                    <div class="alert-item__body">
+                      <div class="alert-item__title">Desvio crítico — Rua das Acácias, 63</div>
+                      <div class="alert-item__desc">+148% no período. Risco: 87%</div>
+                    </div>
+                    <div class="alert-item__time">Ontem 08:45</div>
+                  </div>
+                  <div class="alert-item alert-item--warn">
+                    <div class="alert-item__ico">⚠️</div>
+                    <div class="alert-item__body">
+                      <div class="alert-item__title">Padrão irregular — Rua Belém, 88</div>
+                      <div class="alert-item__desc">Flutuação incomum há 3 meses. Risco: 61%</div>
+                    </div>
+                    <div class="alert-item__time">14/05</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card card--p">
+                <h3 style="font-size:14px;font-weight:700;margin-bottom:14px">Distribuição por Prioridade</h3>
+                <div style="display:flex;gap:10px;align-items:flex-end;height:120px">
+                  <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+                    <span style="font-size:11px;color:var(--muted)">23</span>
+                    <div style="width:100%;height:88px;background:var(--danger);border-radius:4px 4px 0 0;opacity:.82"></div>
+                    <span style="font-size:11px;color:var(--muted)">Alta</span>
+                  </div>
+                  <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+                    <span style="font-size:11px;color:var(--muted)">15</span>
+                    <div style="width:100%;height:58px;background:var(--warn);border-radius:4px 4px 0 0;opacity:.82"></div>
+                    <span style="font-size:11px;color:var(--muted)">Média</span>
+                  </div>
+                  <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+                    <span style="font-size:11px;color:var(--muted)">9</span>
+                    <div style="width:100%;height:35px;background:var(--ok);border-radius:4px 4px 0 0;opacity:.82"></div>
+                    <span style="font-size:11px;color:var(--muted)">Baixa</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="card card--p mb-20">
+                <h3 style="font-size:14px;font-weight:700;margin-bottom:14px">Acurácia do Modelo IA</h3>
+                <div style="text-align:center;padding:16px 0">
+                  <div style="font-size:52px;font-weight:800;color:var(--accent)">94.2%</div>
+                  <div style="font-size:12px;color:var(--muted);margin-top:6px">Precisão de detecção</div>
+                  <div style="margin-top:14px;display:flex;gap:16px;justify-content:center;font-size:13px">
+                    <div style="text-align:center">
+                      <div style="font-weight:700;color:var(--danger)">3.1%</div>
+                      <div style="color:var(--muted)">Falsos Positivos</div>
+                    </div>
+                    <div style="text-align:center">
+                      <div style="font-weight:700;color:var(--warn)">2.7%</div>
+                      <div style="color:var(--muted)">Falsos Negativos</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card card--p">
+                <h3 style="font-size:14px;font-weight:700;margin-bottom:14px">Unidades Monitoradas</h3>
+                <div style="display:flex;flex-direction:column;gap:11px;font-size:13px">
+                  <div style="display:flex;justify-content:space-between">
+                    <span style="color:var(--muted)">Total cadastradas</span><strong>1.284</strong>
+                  </div>
+                  <div style="display:flex;justify-content:space-between">
+                    <span style="color:var(--muted)">Com Smart Meter (medidor inteligente)</span>
+                    <strong style="color:var(--ok)">892</strong>
+                  </div>
+                  <div style="display:flex;justify-content:space-between">
+                    <span style="color:var(--muted)">Em análise IA</span>
+                    <strong style="color:var(--accent)">47</strong>
+                  </div>
+                  <div style="display:flex;justify-content:space-between">
+                    <span style="color:var(--muted)">Aguardando inspeção</span>
+                    <strong style="color:var(--danger)">23</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /page-content -->
+    </main>
+  </div>
+</div>
+
+<!-- ===================== MODALS ===================== -->
+
+<!-- Alertas -->
+<div class="modal-bd" id="modal-alerts">
+  <div class="modal">
+    <div class="modal__hd">
+      <h3 class="modal__title">🔔 Alertas do Sistema</h3>
+      <button class="modal__close" onclick="closeModal('modal-alerts')">✕</button>
+    </div>
+    <div class="alert-list">
+      <div class="alert-item alert-item--danger">
+        <div class="alert-item__ico">🚨</div>
+        <div class="alert-item__body">
+          <div class="alert-item__title">CRÍTICO — Travessa da Boa Vista, 7</div>
+          <div class="alert-item__desc">Probabilidade de furto: 91% · Aguardando inspeção</div>
+        </div>
+        <div class="alert-item__time">Hoje</div>
+      </div>
+      <div class="alert-item alert-item--danger">
+        <div class="alert-item__ico">⚡</div>
+        <div class="alert-item__body">
+          <div class="alert-item__title">Desvio crítico — Rua das Acácias, 63</div>
+          <div class="alert-item__desc">Consumo +148% acima da média · Risco: 87%</div>
+        </div>
+        <div class="alert-item__time">Ontem</div>
+      </div>
+      <div class="alert-item alert-item--warn">
+        <div class="alert-item__ico">⚠️</div>
+        <div class="alert-item__body">
+          <div class="alert-item__title">Anomalia — Rua Belém, 88</div>
+          <div class="alert-item__desc">Flutuação incomum detectada · Risco: 61%</div>
+        </div>
+        <div class="alert-item__time">14/05</div>
+      </div>
+    </div>
+    <div class="form-actions" style="border:none;padding-top:14px;margin-top:14px;border-top:1px solid var(--border)">
+      <button class="btn btn--outline btn--sm" onclick="closeModal('modal-alerts')">Fechar</button>
+      <button class="btn btn--primary btn--sm" onclick="closeModal('modal-alerts');go('view-tecnico')">Enviar Técnico</button>
+    </div>
+  </div>
+</div>
+
+<!-- Unit Detail -->
+<div class="modal-bd" id="modal-unit">
+  <div class="modal">
+    <div class="modal__hd">
+      <h3 class="modal__title" id="modal-unit-title">Detalhes da Unidade</h3>
+      <button class="modal__close" onclick="closeModal('modal-unit')">✕</button>
+    </div>
+    <div id="modal-unit-body"></div>
+    <div class="form-actions" style="border:none;padding-top:14px;margin-top:14px;border-top:1px solid var(--border)">
+      <button class="btn btn--outline btn--sm" onclick="closeModal('modal-unit')">Fechar</button>
+      <button class="btn btn--yellow btn--sm" onclick="closeModal('modal-unit');go('view-leitura')">Nova Leitura</button>
+      <button class="btn btn--primary btn--sm" onclick="closeModal('modal-unit');go('view-tecnico')">Enviar Técnico</button>
+    </div>
+  </div>
+</div>
+
+<!-- H3: Confirmação antes de registrar leitura -->
+<div class="modal-bd" id="modal-confirm-leitura">
+  <div class="modal" style="max-width:420px">
+    <div class="modal__hd">
+      <h3 class="modal__title">Confirmar Registro de Leitura</h3>
+      <button class="modal__close" onclick="closeModal('modal-confirm-leitura')">✕</button>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Confirme os dados antes de registrar. Após o envio, não será possível alterar.</p>
+    <div id="leitura-confirm-summary" style="margin-bottom:18px"></div>
+    <div class="form-actions" style="border:none;padding:0;margin:0">
+      <button class="btn btn--outline btn--sm" onclick="closeModal('modal-confirm-leitura')">← Revisar</button>
+      <button class="btn btn--primary btn--sm" id="confirm-leitura-btn" onclick="submitLeitura()">Confirmar e Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- H3: Confirmação antes de enviar técnico -->
+<div class="modal-bd" id="modal-confirm-tecnico">
+  <div class="modal" style="max-width:440px">
+    <div class="modal__hd">
+      <h3 class="modal__title">Confirmar Envio de Técnico</h3>
+      <button class="modal__close" onclick="closeModal('modal-confirm-tecnico')">✕</button>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Confirme os dados da solicitação antes de enviar.</p>
+    <div id="tecnico-confirm-summary" style="margin-bottom:18px"></div>
+    <div class="form-actions" style="border:none;padding:0;margin:0">
+      <button class="btn btn--outline btn--sm" onclick="closeModal('modal-confirm-tecnico')">← Revisar</button>
+      <button class="btn btn--primary btn--sm" id="tecnico-confirm-btn" onclick="submitTecnico()">Confirmar e Enviar</button>
+    </div>
+  </div>
+</div>
+
+<!-- H4: Modal de detalhes do protocolo -->
+<div class="modal-bd" id="modal-protocolo">
+  <div class="modal" style="max-width:480px">
+    <div class="modal__hd">
+      <h3 class="modal__title" id="modal-proto-title">Protocolo</h3>
+      <button class="modal__close" onclick="closeModal('modal-protocolo')">✕</button>
+    </div>
+    <div id="modal-proto-body"></div>
+    <div class="form-actions" style="border:none;padding-top:16px;margin-top:14px;border-top:1px solid var(--border)">
+      <button class="btn btn--outline btn--sm" onclick="closeModal('modal-protocolo')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- H10: Modal de ajuda e glossário -->
+<div class="modal-bd" id="modal-help">
+  <div class="modal" style="max-width:540px">
+    <div class="modal__hd">
+      <h3 class="modal__title">❓ Ajuda — CATchNet</h3>
+      <button class="modal__close" onclick="closeModal('modal-help')">✕</button>
+    </div>
+    <!-- Tabs -->
+    <div class="help-tabs">
+      <button class="help-tab active" onclick="switchHelpTab('glossario',this)">Glossário</button>
+      <button class="help-tab" onclick="switchHelpTab('como-usar',this)">Como Usar</button>
+      <button class="help-tab" onclick="switchHelpTab('atalhos',this)">Atalhos</button>
+    </div>
+    <!-- Tab: Glossário -->
+    <div class="help-pane active" id="help-glossario">
+      <div style="padding:11px;background:var(--bg);border-radius:var(--r)">
+        <strong>Unidade Consumidora (UC)</strong>
+        <p style="color:var(--muted);margin-top:3px">Ponto de entrega de energia elétrica de um imóvel, identificado por código <strong>UC-XXXXX</strong> (ex: UC-00123). Cada imóvel monitorado é uma UC.</p>
+      </div>
+      <div style="padding:11px;background:var(--bg);border-radius:var(--r)">
+        <strong>kWh (Quilowatt-hora)</strong>
+        <p style="color:var(--muted);margin-top:3px">Unidade de medida de energia consumida. 1 kWh = uso de um aparelho de 1.000 watts por 1 hora.</p>
+      </div>
+      <div style="padding:11px;background:var(--bg);border-radius:var(--r)">
+        <strong>SDE — Sistema da Distribuidora de Energia</strong>
+        <p style="color:var(--muted);margin-top:3px">Sistema legado que armazena histórico de leituras, cadastros de unidades e dados de faturamento.</p>
+      </div>
+      <div style="padding:11px;background:var(--bg);border-radius:var(--r)">
+        <strong>Probabilidade de Furto (%)</strong>
+        <p style="color:var(--muted);margin-top:3px">Score gerado pela IA indicando risco de desvio de energia. Acima de 70% = alta prioridade de inspeção.</p>
+      </div>
+      <div style="padding:11px;background:var(--bg);border-radius:var(--r)">
+        <strong>Smart Meter (Medidor Inteligente)</strong>
+        <p style="color:var(--muted);margin-top:3px">Medidor digital que transmite leituras automaticamente em tempo real, eliminando visitas manuais.</p>
+      </div>
+      <div style="padding:11px;background:var(--bg);border-radius:var(--r)">
+        <strong>Anomalia</strong>
+        <p style="color:var(--muted);margin-top:3px">Padrão de consumo fora da média histórica da unidade — pode indicar furto, defeito ou adulteração.</p>
+      </div>
+      <div style="padding:11px;background:var(--bg);border-radius:var(--r)">
+        <strong>IA (Inteligência Artificial)</strong>
+        <p style="color:var(--muted);margin-top:3px">Modelo treinado para detectar padrões suspeitos de consumo e calcular automaticamente a probabilidade de furto.</p>
+      </div>
+    </div>
+    <!-- Tab: Como Usar -->
+    <div class="help-pane" id="help-como-usar" style="font-size:13px">
+      <div style="padding:13px;background:var(--bg);border-radius:var(--r)">
+        <strong style="display:block;margin-bottom:8px;color:var(--accent)">📋 Registrar uma Leitura de Consumo</strong>
+        <ol style="margin-left:16px;color:var(--muted);display:flex;flex-direction:column;gap:5px">
+          <li>Acesse <strong>Leitura de Consumo</strong> no menu lateral</li>
+          <li>Informe o <strong>ID da UC</strong> no formato UC-XXXXX</li>
+          <li>Preencha o endereço e a <strong>leitura atual em kWh</strong></li>
+          <li>Selecione a data (não pode ser futura) e a hora</li>
+          <li>Clique em <strong>Registrar Leitura</strong> e confirme no modal</li>
+        </ol>
+      </div>
+      <div style="padding:13px;background:var(--bg);border-radius:var(--r)">
+        <strong style="display:block;margin-bottom:8px;color:var(--accent)">👷 Enviar Técnico para Verificação</strong>
+        <ol style="margin-left:16px;color:var(--muted);display:flex;flex-direction:column;gap:5px">
+          <li>Na lista de unidades, clique em <strong>🚨 Técnico</strong> na unidade suspeita, <em>ou</em></li>
+          <li>Acesse <strong>Enviar Técnico</strong> no menu lateral</li>
+          <li>Selecione a unidade, o técnico e a data prevista</li>
+          <li>Clique em <strong>Enviar Solicitação</strong> e confirme</li>
+          <li>Acompanhe o protocolo na tabela <em>Solicitações em Andamento</em></li>
+        </ol>
+      </div>
+      <div style="padding:13px;background:var(--bg);border-radius:var(--r)">
+        <strong style="display:block;margin-bottom:8px;color:var(--accent)">🗺️ Usar o Mapa de Consumo</strong>
+        <ol style="margin-left:16px;color:var(--muted);display:flex;flex-direction:column;gap:5px">
+          <li>Acesse <strong>Mapa de Consumo</strong> no menu lateral</li>
+          <li>Pontos <span style="color:var(--danger)">vermelhos</span> = alta prioridade, <span style="color:var(--warn)">amarelos</span> = média</li>
+          <li>Passe o cursor para ver o endereço e o percentual de risco</li>
+          <li>Clique em qualquer ponto colorido para ir direto ao formulário de envio</li>
+        </ol>
+      </div>
+    </div>
+    <!-- Tab: Atalhos de teclado -->
+    <div class="help-pane" id="help-atalhos" style="font-size:13px">
+      <p style="color:var(--muted);margin-bottom:4px">Atalhos disponíveis no sistema:</p>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--bg);border-radius:var(--r)">
+          <span>Abrir Nova Leitura</span><span><kbd class="kbd">Alt</kbd> + <kbd class="kbd">L</kbd></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--bg);border-radius:var(--r)">
+          <span>Ir para Enviar Técnico</span><span><kbd class="kbd">Alt</kbd> + <kbd class="kbd">T</kbd></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--bg);border-radius:var(--r)">
+          <span>Ir para o Mapa</span><span><kbd class="kbd">Alt</kbd> + <kbd class="kbd">M</kbd></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--bg);border-radius:var(--r)">
+          <span>Abrir Painel de Indicadores</span><span><kbd class="kbd">Alt</kbd> + <kbd class="kbd">P</kbd></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--bg);border-radius:var(--r)">
+          <span>Abrir esta Ajuda</span><span><kbd class="kbd">?</kbd></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--bg);border-radius:var(--r)">
+          <span>Fechar modal / cancelar</span><span><kbd class="kbd">Esc</kbd></span>
+        </div>
+      </div>
+    </div>
+    <div class="form-actions" style="border:none;padding-top:16px;margin-top:6px;border-top:1px solid var(--border)">
+      <button class="btn btn--primary btn--sm" onclick="closeModal('modal-help')">Entendido</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast-el"></div>
+
+<!-- ===================== JS ===================== -->
+<script>
+const UNITS = [
+  { id:'uc007', addr:'Travessa da Boa Vista, 7',   district:'Zona Norte',    desc:'Consumo zerado por 15 dias seguido de pico anômalo.',                         risk:91, prio:'alta',  time:'Hoje',      kwh:510, ico:'🏚️' },
+  { id:'uc001', addr:'Rua das Acácias, 63',         district:'Centro',        desc:'Aumento abrupto no consumo. Moradores relatam não ter mudado os hábitos.',    risk:87, prio:'alta',  time:'Ontem',     kwh:420, ico:'🏠' },
+  { id:'uc003', addr:'Avenida Vital Brasil Filho, 154', district:'Jardim América', desc:'Aumento na conta de energia e moradores relatam não ter mudado o consumo.',risk:79, prio:'alta',  time:'Há 3 dias', kwh:380, ico:'🏘️' },
+  { id:'uc009', addr:'Rua Belém, 88',               district:'Zona Leste',    desc:'Flutuação incomum nos últimos 3 meses identificada pelo modelo de IA.',        risk:61, prio:'media', time:'Há 3 dias', kwh:295, ico:'🏡' },
+  { id:'uc002', addr:'Rua Sete de Setembro, 18',    district:'Vila Nova',     desc:'Padrão de consumo irregular nos últimos 3 meses.',                            risk:58, prio:'media', time:'Há 2 dias', kwh:210, ico:'🏡' },
+  { id:'uc004', addr:'Rua das Flores, 200',         district:'Boa Vista',     desc:'Variação leve detectada. Pode ser sazonal.',                                   risk:44, prio:'media', time:'Há 4 dias', kwh:160, ico:'🏠' },
+  { id:'uc008', addr:'Rua das Palmeiras, 305',      district:'Jardim Sul',    desc:'Consumo regular. Sem anomalias significativas.',                               risk:22, prio:'baixa', time:'Há 6 dias', kwh:110, ico:'🏠' },
+  { id:'uc005', addr:'Avenida Central, 10',         district:'Centro',        desc:'Consumo dentro dos parâmetros esperados.',                                     risk:15, prio:'baixa', time:'Há 5 dias', kwh:95,  ico:'🏢' },
+];
+
+const VIEW_TITLES = {
+  'view-unidades':'Unidades Consumidoras','view-mapa':'Mapa de Consumo',
+  'view-leitura':'Leitura de Consumo','view-tecnico':'Enviar Técnico para Verificação',
+  'view-historico':'Histórico de Dados','view-painel':'Painel de Indicadores'
+};
+const NAV_MAP = {
+  'view-unidades':'nav-unidades','view-mapa':'nav-mapa','view-leitura':'nav-leitura',
+  'view-tecnico':'nav-tecnico','view-historico':'nav-historico','view-painel':'nav-painel'
+};
+
+function prioTag(prio, risk) {
+  if (prio==='alta')  return `<span class="tag tag--danger">● Alta (${risk}%)</span>`;
+  if (prio==='media') return `<span class="tag tag--warn">● Média (${risk}%)</span>`;
+  return `<span class="tag tag--ok">● Baixa (${risk}%)</span>`;
+}
+
+// H2: substitui datas relativas por datas absolutas legíveis
+function relToDate(rel) {
+  const d = new Date();
+  if (rel === 'Hoje')      { return d.toLocaleDateString('pt-BR'); }
+  if (rel === 'Ontem')     { d.setDate(d.getDate()-1); return d.toLocaleDateString('pt-BR'); }
+  const m = rel.match(/Há (\d+) dias?/);
+  if (m) { d.setDate(d.getDate() - parseInt(m[1])); return d.toLocaleDateString('pt-BR'); }
+  return rel;
+}
+
+function renderUnits(data) {
+  const el = document.getElementById('unit-list');
+  if (!data.length) {
+    el.innerHTML = '<div style="padding:28px;text-align:center;color:var(--muted)">Nenhuma unidade encontrada. Tente ajustar os filtros.</div>';
+    return;
+  }
+  el.innerHTML = data.map(u => {
+    // H7: botão de ação rápida apenas para unidades de alta prioridade (>70%)
+    const qa = u.risk > 70
+      ? `<div class="unit-card__qa">
+           <button class="btn btn--danger btn--sm"
+             onclick="event.stopPropagation();goToTecnico('${unitSelectValue(u)}')"
+             title="Enviar técnico imediatamente">🚨 Técnico</button>
+         </div>`
+      : '';
+    // H2: data relativa mostrada com data real entre parênteses
+    const dataLbl = `📅 ${u.time} (${relToDate(u.time)})`;
+    return `
+    <div class="unit-card" onclick="openUnit('${u.id}')">
+      <div class="unit-card__thumb">${u.ico}</div>
+      <div class="unit-card__body">
+        <div class="unit-card__addr">${u.addr}</div>
+        <div class="unit-card__desc">${u.desc}</div>
+        <div class="unit-card__meta">
+          <span>${dataLbl}</span>
+          ${prioTag(u.prio, u.risk)}
+        </div>
+      </div>
+      <div class="unit-card__loc">${u.district}</div>
+      ${qa}
+      <div class="unit-card__arrow">▶</div>
+    </div>`;
+  }).join('');
+}
+
+// Maps unit IDs to the exact value strings used in the Técnico select (must match option[value])
+const UNIT_SELECT_MAP = {
+  uc007:'UC-007 · Travessa da Boa Vista, 7 (91%)',
+  uc001:'UC-001 · Rua das Acácias, 63 (87%)',
+  uc003:'UC-003 · Av. Vital Brasil Filho, 154 (79%)',
+  uc009:'UC-009 · Rua Belém, 88 (61%)',
+  uc002:'UC-002 · Rua Sete de Setembro, 18 (58%)',
+  uc004:'UC-004 · Rua das Flores, 200 (44%)',
+};
+function unitSelectValue(u) {
+  return UNIT_SELECT_MAP[u.id] || u.addr;
+}
+
+// H7: estado dos filtros e ordenação persistem enquanto o usuário navega
+let _filterQ = '', _filterPrio = '', _sortVal = '';
+
+function filterUnits(q) { _filterQ = q; applyFilters(); }
+function filterByPrio(p) { _filterPrio = p; applyFilters(); }
+function doSort(val) { _sortVal = val; applyFilters(); }
+
+function applyFilters() {
+  const lq = _filterQ.toLowerCase();
+  let data = UNITS.filter(u => {
+    const matchQ = !lq || u.addr.toLowerCase().includes(lq) || u.district.toLowerCase().includes(lq);
+    const matchP = !_filterPrio || u.prio === _filterPrio;
+    return matchQ && matchP;
+  });
+  if (_sortVal === 'risk') data = [...data].sort((a,b) => b.risk - a.risk);
+  else if (_sortVal === 'kwh') data = [...data].sort((a,b) => b.kwh - a.kwh);
+  else if (_sortVal === 'time') {
+    const order = {Hoje:0,Ontem:1};
+    data = [...data].sort((a,b) => (order[a.time]??99) - (order[b.time]??99));
+  }
+  renderUnits(data);
+  const c = document.getElementById('unit-count');
+  if (c) c.textContent = `${data.length} unidade${data.length!==1?'s':''} encontrada${data.length!==1?'s':''}`;
+}
+
+// H4/H8: filtro funcional dos pontos no mapa por categoria
+function filterMapDots(riskClass) {
+  document.querySelectorAll('.map-dot').forEach(dot => {
+    dot.style.display = (!riskClass || dot.dataset.risk === riskClass) ? '' : 'none';
+  });
+  if (riskClass) toast(`🗺️ Mostrando apenas pontos de ${riskClass==='danger'?'alta':riskClass==='warn'?'média':'baixa'} probabilidade`);
+  else toast('🗺️ Todos os pontos visíveis');
+}
+
+// H9: filtro de texto no mapa com feedback
+function filterMapDotsByText(q) {
+  const lq = q.toLowerCase().trim();
+  document.querySelectorAll('.map-dot').forEach(dot => {
+    dot.style.display = (!lq || (dot.dataset.addr||'').includes(lq)) ? '' : 'none';
+  });
+}
+
+function doMapSearch() {
+  const q = document.getElementById('map-search-input').value.trim();
+  if (!q) { toast('⚠ Digite um endereço para buscar no mapa.'); return; }
+  const lq = q.toLowerCase();
+  let found = 0;
+  document.querySelectorAll('.map-dot').forEach(dot => {
+    const match = (dot.dataset.addr||'').includes(lq);
+    dot.style.display = match ? '' : 'none';
+    if (match) found++;
+  });
+  if (found === 0) toast(`⚠ Nenhum ponto encontrado para "${q}". Verifique o endereço.`);
+  else toast(`🔍 ${found} ponto${found!==1?'s':''} encontrado${found!==1?'s':''}!`);
+}
+
+// H9: Histórico — valida datas antes de consultar
+function doConsultar() {
+  const ini = document.getElementById('hist-date-ini').value;
+  const fin = document.getElementById('hist-date-fin').value;
+  if (!ini || !fin) { toast('⚠ Informe as datas inicial e final para consultar.'); return; }
+  if (fin < ini) { toast('⚠ A Data Final não pode ser anterior à Data Inicial.'); return; }
+  const btn = document.getElementById('consultar-btn');
+  btn.setAttribute('data-loading','1');
+  btn.textContent = 'Consultando…';
+  setTimeout(() => {
+    btn.removeAttribute('data-loading');
+    btn.textContent = 'Consultar';
+    toast('✅ Consulta realizada com sucesso!');
+  }, 700);
+}
+
+// H1: Exportar com loading state
+function doExport() {
+  const btn = document.getElementById('export-btn');
+  btn.setAttribute('data-loading','1');
+  btn.textContent = 'Gerando PDF…';
+  setTimeout(() => {
+    btn.removeAttribute('data-loading');
+    btn.textContent = '⬇ Exportar Relatório';
+    toast('✅ Relatório exportado em PDF!');
+  }, 900);
+}
+
+// H9: inline field error helpers
+function showFieldErr(id, msg) {
+  const el = document.getElementById(id);
+  if (el) { el.textContent = msg; el.classList.add('show'); }
+}
+function clearFieldErr(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('show');
+}
+
+function openUnit(id) {
+  const u = UNITS.find(x => x.id === id);
+  if (!u) return;
+  document.getElementById('modal-unit-title').textContent = u.addr;
+  const bg = u.prio==='alta'?'var(--danger-bg)':u.prio==='media'?'var(--warn-bg)':'var(--ok-bg)';
+  const col = u.prio==='alta'?'var(--danger)':u.prio==='media'?'#92400E':'var(--ok)';
+  // H6: mostra data real no modal para o usuário não precisar memorizar
+  const realDate = relToDate(u.time);
+  document.getElementById('modal-unit-body').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;font-size:13px;margin-bottom:14px">
+      <div><div style="font-size:11px;color:var(--muted);margin-bottom:3px">ENDEREÇO</div><strong>${u.addr}</strong></div>
+      <div><div style="font-size:11px;color:var(--muted);margin-bottom:3px">BAIRRO</div><strong>${u.district}</strong></div>
+      <div><div style="font-size:11px;color:var(--muted);margin-bottom:3px">CONSUMO PERÍODO</div><strong>${u.kwh} kWh</strong></div>
+      <div><div style="font-size:11px;color:var(--muted);margin-bottom:3px">ÚLTIMA LEITURA</div><strong>${u.time} (${realDate})</strong></div>
+    </div>
+    <div style="padding:11px;border-radius:8px;background:${bg};border-left:4px solid ${col}">
+      <div style="font-size:12px;font-weight:700;color:${col};margin-bottom:4px">
+        ANÁLISE IA — Probabilidade de furto: ${u.risk}%
+      </div>
+      <div style="font-size:13px;color:var(--muted)">${u.desc}</div>
+    </div>`;
+  openModal('modal-unit');
+}
+
+let _currentView = 'view-unidades', _prevView = null;
+
+function go(viewId) {
+  _prevView = _currentView;
+  _currentView = viewId;
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.sidebar__nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(viewId).classList.add('active');
+  const nid = NAV_MAP[viewId];
+  if (nid) document.getElementById(nid).classList.add('active');
+  document.getElementById('hd-title').textContent = VIEW_TITLES[viewId] || '';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// H3: volta para a tela anterior
+function goBack() {
+  go(_prevView || 'view-unidades');
+}
+
+function doLogin(e) {
+  e.preventDefault();
+  const uEl = document.getElementById('l-user');
+  const pEl = document.getElementById('l-pass');
+  const err = document.getElementById('l-err');
+  const u = uEl.value.trim();
+  const p = pEl.value;
+
+  // H9: mensagem específica conforme o problema
+  if (!u && !p) {
+    err.textContent = '⚠ Preencha o usuário e a senha para continuar.';
+    err.style.display = 'block'; uEl.focus(); return;
+  }
+  if (!u) {
+    err.textContent = '⚠ Informe sua matrícula de funcionário.';
+    err.style.display = 'block'; uEl.focus(); return;
+  }
+  if (!p) {
+    err.textContent = '⚠ Informe sua senha.';
+    err.style.display = 'block'; pEl.focus(); return;
+  }
+  if (p.length < 4) {
+    err.textContent = '⚠ Senha inválida — mínimo 4 caracteres.';
+    err.style.display = 'block'; pEl.focus(); return;
+  }
+
+  // H1: indicar que o sistema está processando o login
+  const btn = e.target.querySelector('button[type=submit]');
+  btn.setAttribute('data-loading', '1');
+  btn.textContent = 'Aguarde…';
+  err.style.display = 'none';
+
+  setTimeout(() => {
+    btn.removeAttribute('data-loading');
+    btn.textContent = 'Entrar no Sistema';
+    document.getElementById('screen-login').classList.remove('active');
+    document.getElementById('screen-app').classList.add('active');
+    initApp();
+  }, 600);
+}
+
+function goToTecnico(unitValue) {
+  go('view-tecnico');
+  const sel = document.getElementById('tecnico-unit-select');
+  if (sel) {
+    sel.value = unitValue;
+    sel.closest('div').style.transition = 'box-shadow .3s';
+    sel.style.borderColor = 'var(--danger)';
+    sel.style.boxShadow = '0 0 0 3px rgba(220,38,38,.25)';
+    setTimeout(() => { sel.style.borderColor = ''; sel.style.boxShadow = ''; }, 2000);
+  }
+  toast('📍 Unidade pré-selecionada: ' + unitValue.split(' · ')[1].replace(/\s*\(\d+%\)/,''));
+}
+
+function doLogout() {
+  document.getElementById('screen-app').classList.remove('active');
+  document.getElementById('screen-login').classList.add('active');
+  document.getElementById('l-user').value = '';
+  document.getElementById('l-pass').value = '';
+}
+
+// H3/H6: confirmação com resumo antes de registrar leitura
+function confirmLeitura(e) {
+  e.preventDefault();
+  const form = e.target;
+  form.classList.add('was-validated');
+  if (!form.checkValidity()) {
+    const first = form.querySelector(':invalid');
+    if (first) first.focus();
+    return;
+  }
+  const ucid  = document.getElementById('f-ucid').value;
+  const addr  = document.getElementById('f-addr').value;
+  const kwh   = document.getElementById('f-kwh').value;
+  const date  = document.getElementById('leitura-date').value;
+  const dateStr = date ? new Date(date+'T00:00').toLocaleDateString('pt-BR') : '—';
+  document.getElementById('leitura-confirm-summary').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;
+      padding:12px;background:var(--bg);border-radius:var(--r)">
+      <div><span style="font-size:11px;color:var(--muted)">ID DA UC</span><br><strong>${ucid}</strong></div>
+      <div><span style="font-size:11px;color:var(--muted)">DATA DA LEITURA</span><br><strong>${dateStr}</strong></div>
+      <div style="grid-column:1/-1"><span style="font-size:11px;color:var(--muted)">ENDEREÇO</span><br><strong>${addr}</strong></div>
+      <div><span style="font-size:11px;color:var(--muted)">LEITURA ATUAL</span><br><strong>${kwh} kWh</strong></div>
+    </div>`;
+  openModal('modal-confirm-leitura');
+}
+
+function submitLeitura() {
+  closeModal('modal-confirm-leitura');
+  const btn = document.getElementById('confirm-leitura-btn');
+  btn.setAttribute('data-loading','1');
+  btn.textContent = 'Registrando…';
+  setTimeout(() => {
+    btn.removeAttribute('data-loading');
+    btn.textContent = 'Confirmar e Registrar';
+    const form = document.getElementById('form-leitura');
+    if (form) { form.reset(); form.classList.remove('was-validated'); }
+    toast('✅ Leitura registrada com sucesso!');
+    setTimeout(() => go('view-unidades'), 1300);
+  }, 800);
+}
+
+// H3: confirmação com resumo antes de enviar técnico
+let _tecnicoForm = null;
+function confirmTecnico(e) {
+  e.preventDefault();
+  const form = e.target;
+  form.classList.add('was-validated');
+  if (!form.checkValidity()) {
+    const first = form.querySelector(':invalid');
+    if (first) first.focus();
+    return;
+  }
+  _tecnicoForm = form;
+  const unit   = document.getElementById('tecnico-unit-select').value;
+  const resp   = document.getElementById('tecnico-resp-select').value;
+  const date   = document.getElementById('tecnico-date').value;
+  const prio   = form.querySelector('.form-select:not([required])').value;
+  const dateStr = date ? new Date(date+'T00:00').toLocaleDateString('pt-BR') : '—';
+  document.getElementById('tecnico-confirm-summary').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;
+      padding:12px;background:var(--bg);border-radius:var(--r)">
+      <div style="grid-column:1/-1"><span style="font-size:11px;color:var(--muted)">UNIDADE</span><br>
+        <strong>${unit.replace(/\s*\(\d+%\)$/,'')}</strong></div>
+      <div><span style="font-size:11px;color:var(--muted)">TÉCNICO</span><br><strong>${resp.split(' · ')[0]}</strong></div>
+      <div><span style="font-size:11px;color:var(--muted)">DATA PREVISTA</span><br><strong>${dateStr}</strong></div>
+      <div style="grid-column:1/-1"><span style="font-size:11px;color:var(--muted)">PRIORIDADE</span><br><strong>${prio}</strong></div>
+    </div>`;
+  openModal('modal-confirm-tecnico');
+}
+
+function submitTecnico() {
+  closeModal('modal-confirm-tecnico');
+  const btn = document.getElementById('tecnico-confirm-btn');
+  btn.setAttribute('data-loading','1');
+  btn.textContent = 'Enviando…';
+  setTimeout(() => {
+    btn.removeAttribute('data-loading');
+    btn.textContent = 'Confirmar e Enviar';
+    toast('✅ Solicitação de técnico enviada com sucesso!');
+    if (_tecnicoForm) { _tecnicoForm.reset(); _tecnicoForm.classList.remove('was-validated'); _tecnicoForm = null; }
+  }, 700);
+}
+
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  // H1: badge some ao abrir alertas
+  if (id === 'modal-alerts') {
+    const badge = document.querySelector('.notif-btn .badge');
+    if (badge) { badge.textContent = '0'; badge.style.opacity = '.35'; badge.style.background = 'var(--muted)'; }
+  }
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-bd').forEach(bd => {
+  bd.addEventListener('click', e => { if (e.target === bd) bd.classList.remove('open'); });
+});
+
+function toast(msg) {
+  const t = document.getElementById('toast-el');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+
+function renderBarChart() {
+  const vals = [145,132,280,165,420,198,175,160,155,148,142,138];
+  const max = Math.max(...vals);
+  document.getElementById('bar-chart').innerHTML = vals.map(v => {
+    const h = Math.round((v/max)*150);
+    const col = v>250?'var(--danger)':v>180?'var(--warn)':'var(--accent)';
+    return `<div class="bar-wrap">
+      <span class="bar-val">${v}</span>
+      <div class="bar" style="height:${h}px;background:${col};opacity:.82"></div>
+    </div>`;
+  }).join('');
+}
+
+function initApp() {
+  renderUnits(UNITS);
+  renderBarChart();
+  go('view-unidades');
+
+  const today = new Date().toISOString().split('T')[0];
+
+  // H5: Data Prevista do técnico não pode ser no passado
+  const tecDate = document.getElementById('tecnico-date');
+  if (tecDate) tecDate.min = today;
+
+  // H5: Data da Leitura não pode ser futura
+  const leiDate = document.getElementById('leitura-date');
+  if (leiDate) leiDate.max = today;
+
+  // H1: Painel "Atualizado em" com data/hora real
+  const upd = document.getElementById('painel-updated');
+  if (upd) {
+    const now = new Date();
+    upd.textContent = `Atualizado em ${now.toLocaleDateString('pt-BR')} às ${now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;
+  }
+
+  // Inicializa contagem de unidades
+  const c = document.getElementById('unit-count');
+  if (c) c.textContent = `${UNITS.length} unidades encontradas`;
+}
+
+// H1: relógio em tempo real no cabeçalho
+function startClock() {
+  function tick() {
+    const el = document.getElementById('clock-time');
+    if (el) el.textContent = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  }
+  tick();
+  setInterval(tick, 60000);
+}
+startClock();
+
+// H4: dados dos protocolos e modal de detalhes
+const PROTOCOLS = [
+  { num:'#2026-0089', unit:'Travessa da Boa Vista, 7', tecnico:'Carlos Mendes', date:'18/05/2026',
+    prio:'Alta', prioClass:'danger', status:'Em campo', statusClass:'warn',
+    obs:'Suspeita de consumo zerado com ligação direta na rede. Técnico instruído a verificar lacre, cavalinho e instalação interna.' },
+  { num:'#2026-0087', unit:'Rua das Acácias, 63', tecnico:'Pedro Costa', date:'20/05/2026',
+    prio:'Alta', prioClass:'danger', status:'Agendado', statusClass:'muted',
+    obs:'Anomalia de +148% detectada pelo modelo de IA. Verificar medidor e histórico de consumo com o morador.' },
+  { num:'#2026-0085', unit:'Av. Vital Brasil Filho, 154', tecnico:'Ana Ferreira', date:'22/05/2026',
+    prio:'Média', prioClass:'warn', status:'Agendado', statusClass:'muted',
+    obs:'Variação suspeita detectada nos últimos 3 meses. Pode ser sazonal — confirmar padrão com moradores antes de registrar ocorrência.' },
+];
+
+function openProtocolo(num) {
+  const p = PROTOCOLS.find(x => x.num === num);
+  if (!p) return;
+  document.getElementById('modal-proto-title').textContent = 'Protocolo ' + p.num;
+  document.getElementById('modal-proto-body').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;margin-bottom:14px">
+      <div style="grid-column:1/-1">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:3px">UNIDADE CONSUMIDORA</div>
+        <strong>${p.unit}</strong>
+      </div>
+      <div><div style="font-size:11px;color:var(--muted);margin-bottom:3px">TÉCNICO</div><strong>${p.tecnico}</strong></div>
+      <div><div style="font-size:11px;color:var(--muted);margin-bottom:3px">DATA PREVISTA</div><strong>${p.date}</strong></div>
+      <div><div style="font-size:11px;color:var(--muted);margin-bottom:3px">PRIORIDADE</div>
+        <span class="tag tag--${p.prioClass}">${p.prio}</span></div>
+      <div><div style="font-size:11px;color:var(--muted);margin-bottom:3px">STATUS</div>
+        <span class="tag tag--${p.statusClass}">${p.status}</span></div>
+    </div>
+    <div style="padding:12px;background:var(--bg);border-radius:var(--r);font-size:13px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px">Observações do Analista</div>
+      <p style="color:var(--text);line-height:1.5">${p.obs}</p>
+    </div>`;
+  openModal('modal-protocolo');
+}
+
+// H10: alterna abas do modal de ajuda
+function switchHelpTab(tab, btn) {
+  document.querySelectorAll('.help-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.help-pane').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('help-' + tab).classList.add('active');
+}
+
+// H3 + H7: ESC fecha modal; Alt+tecla navega
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-bd.open').forEach(m => m.classList.remove('open'));
+    return;
+  }
+  const tag = document.activeElement.tagName;
+  const typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+  if (e.altKey && !typing) {
+    if (e.key === 'l' || e.key === 'L') { e.preventDefault(); go('view-leitura'); }
+    if (e.key === 't' || e.key === 'T') { e.preventDefault(); go('view-tecnico'); }
+    if (e.key === 'm' || e.key === 'M') { e.preventDefault(); go('view-mapa'); }
+    if (e.key === 'p' || e.key === 'P') { e.preventDefault(); go('view-painel'); }
+  }
+  if (e.key === '?' && !typing) { openModal('modal-help'); }
+});
+</script>
+</body>
+</html>
