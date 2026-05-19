@@ -112,19 +112,24 @@
     .page-content{padding:28px;flex:1}
 
     /* VIEWS */
-    .view{display:none}.view.active{display:block}
+    @keyframes fadeInUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+    .view{display:none}.view.active{display:block;animation:fadeInUp .28s ease}
 
     /* ---- COMPONENTS ---- */
     .sec-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
     .sec-title{font-size:21px;font-weight:700;display:flex;align-items:center;gap:8px}
-    .card{background:var(--white);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
+    .card{background:var(--white);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;transition:box-shadow .2s}
+    .card:hover{box-shadow:var(--sh-md)}
     .card--p{padding:22px}
     .mb-20{margin-bottom:20px}.mb-24{margin-bottom:24px}
 
     /* STATS */
     .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:22px}
     .stat-card{background:var(--white);border-radius:var(--r);padding:18px;
-      box-shadow:var(--sh);border-left:4px solid transparent}
+      box-shadow:var(--sh);border-left:4px solid transparent;
+      transition:box-shadow .2s,transform .15s;overflow:hidden}
+    .stat-card:hover{box-shadow:0 6px 20px rgba(0,0,0,.13);transform:translateY(-2px)}
+    .stat-sparkline{display:block;overflow:visible;opacity:.8}
     .stat-card--danger{border-left-color:var(--danger)}
     .stat-card--warn{border-left-color:var(--warn)}
     .stat-card--ok{border-left-color:var(--ok)}
@@ -145,10 +150,11 @@
     /* UNIT CARDS (matches reference image) */
     .unit-list{display:flex;flex-direction:column}
     .unit-card{display:flex;align-items:stretch;background:var(--white);
-      border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
+      border-bottom:1px solid var(--border);cursor:pointer;
+      transition:background .15s,box-shadow .18s}
     .unit-card:first-child{border-radius:var(--r) var(--r) 0 0}
     .unit-card:last-child{border-radius:0 0 var(--r) var(--r);border-bottom:none}
-    .unit-card:hover{background:#FFFDE7}
+    .unit-card:hover{background:#FFFDE7;box-shadow:inset 4px 0 0 var(--yellow-dk)}
     .unit-card__thumb{width:96px;height:88px;background:#E5E7EB;display:flex;
       align-items:center;justify-content:center;font-size:30px;flex-shrink:0}
     .unit-card__body{flex:1;padding:11px 14px}
@@ -323,6 +329,21 @@
     /* H7 — atalhos de teclado (kbd label) */
     .kbd{display:inline-block;background:#F3F4F6;border:1px solid #D1D5DB;border-radius:4px;
       padding:1px 6px;font-size:11px;font-family:monospace;color:var(--text);line-height:1.6}
+
+    /* ── Skeleton loader ───────────────────────── */
+    @keyframes shimmer{0%{background-position:-600px 0}100%{background-position:600px 0}}
+    .skeleton{background:linear-gradient(to right,#F0F1F3 4%,#E5E7EB 25%,#F0F1F3 36%)
+      0 0 / 1200px 100%;animation:shimmer 1.5s infinite linear;border-radius:4px}
+    .unit-skeleton{display:flex;align-items:stretch;background:var(--white);
+      border-bottom:1px solid var(--border);overflow:hidden}
+    .unit-skeleton:first-child{border-radius:var(--r) var(--r) 0 0}
+    .unit-skeleton:last-child{border-radius:0 0 var(--r) var(--r);border-bottom:none}
+    .unit-skeleton__thumb{width:96px;height:88px;flex-shrink:0}
+    .unit-skeleton__body{flex:1;padding:18px 14px;display:flex;flex-direction:column;gap:11px}
+    .unit-skeleton__line{height:11px;border-radius:4px}
+    .unit-skeleton__line--title{width:55%}
+    .unit-skeleton__line--desc{width:83%}
+    .unit-skeleton__line--short{width:40%}
 
     /* RESPONSIVE */
     @media(max-width:768px){
@@ -881,23 +902,47 @@
           <div class="stats-grid">
             <div class="stat-card stat-card--danger">
               <div class="stat-lbl">Suspeitas de Furto (ativas)</div>
-              <div class="stat-val">23</div>
-              <div class="stat-sub">↑ 5 novas esta semana</div>
+              <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:8px">
+                <div><div class="stat-val">23</div><div class="stat-sub">↑ 5 novas esta semana</div></div>
+                <svg class="stat-sparkline" width="80" height="28" viewBox="0 0 80 28">
+                  <defs><linearGradient id="sg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--danger)" stop-opacity=".3"/><stop offset="100%" stop-color="var(--danger)" stop-opacity="0"/></linearGradient></defs>
+                  <path d="M0,26 L13,22 L27,17 L40,19 L53,11 L67,8 L80,2 L80,28 L0,28 Z" fill="url(#sg1)"/>
+                  <path d="M0,26 L13,22 L27,17 L40,19 L53,11 L67,8 L80,2" fill="none" stroke="var(--danger)" stroke-width="1.5" stroke-linejoin="round"/>
+                </svg>
+              </div>
             </div>
             <div class="stat-card stat-card--warn">
               <div class="stat-lbl">Anomalias Detectadas</div>
-              <div class="stat-val">47</div>
-              <div class="stat-sub">Últimos 30 dias</div>
+              <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:8px">
+                <div><div class="stat-val">47</div><div class="stat-sub">Últimos 30 dias</div></div>
+                <svg class="stat-sparkline" width="80" height="28" viewBox="0 0 80 28">
+                  <defs><linearGradient id="sg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--warn)" stop-opacity=".3"/><stop offset="100%" stop-color="var(--warn)" stop-opacity="0"/></linearGradient></defs>
+                  <path d="M0,26 L13,12 L27,20 L40,6 L53,8 L67,2 L80,2 L80,28 L0,28 Z" fill="url(#sg2)"/>
+                  <path d="M0,26 L13,12 L27,20 L40,6 L53,8 L67,2 L80,2" fill="none" stroke="var(--warn)" stroke-width="1.5" stroke-linejoin="round"/>
+                </svg>
+              </div>
             </div>
             <div class="stat-card stat-card--ok">
               <div class="stat-lbl">Inspeções Concluídas</div>
-              <div class="stat-val">18</div>
-              <div class="stat-sub">↑ 12% vs. mês anterior</div>
+              <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:8px">
+                <div><div class="stat-val">18</div><div class="stat-sub">↑ 12% vs. mês anterior</div></div>
+                <svg class="stat-sparkline" width="80" height="28" viewBox="0 0 80 28">
+                  <defs><linearGradient id="sg3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--ok)" stop-opacity=".3"/><stop offset="100%" stop-color="var(--ok)" stop-opacity="0"/></linearGradient></defs>
+                  <path d="M0,26 L13,20 L27,17 L40,23 L53,11 L67,8 L80,2 L80,28 L0,28 Z" fill="url(#sg3)"/>
+                  <path d="M0,26 L13,20 L27,17 L40,23 L53,11 L67,8 L80,2" fill="none" stroke="var(--ok)" stroke-width="1.5" stroke-linejoin="round"/>
+                </svg>
+              </div>
             </div>
             <div class="stat-card stat-card--accent">
               <div class="stat-lbl">Economia Estimada</div>
-              <div class="stat-val" style="font-size:22px">R$ 47.800</div>
-              <div class="stat-sub">Em perdas evitadas este mês</div>
+              <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:8px">
+                <div><div class="stat-val" style="font-size:22px">R$ 47.800</div><div class="stat-sub">Em perdas evitadas este mês</div></div>
+                <svg class="stat-sparkline" width="80" height="28" viewBox="0 0 80 28">
+                  <defs><linearGradient id="sg4" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--accent)" stop-opacity=".3"/><stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>
+                  <path d="M0,26 L13,21 L27,20 L40,17 L53,14 L67,8 L80,2 L80,28 L0,28 Z" fill="url(#sg4)"/>
+                  <path d="M0,26 L13,21 L27,20 L40,17 L53,14 L67,8 L80,2" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round"/>
+                </svg>
+              </div>
             </div>
           </div>
 
@@ -1255,39 +1300,55 @@ function relToDate(rel) {
   return rel;
 }
 
-function renderUnits(data) {
+function renderUnits(data, withSkeleton) {
   const el = document.getElementById('unit-list');
   if (!data.length) {
     el.innerHTML = '<div style="padding:28px;text-align:center;color:var(--muted)">Nenhuma unidade encontrada. Tente ajustar os filtros.</div>';
     return;
   }
-  el.innerHTML = data.map(u => {
-    // H7: botão de ação rápida apenas para unidades de alta prioridade (>70%)
-    const qa = u.risk > 70
-      ? `<div class="unit-card__qa">
-           <button class="btn btn--danger btn--sm"
-             onclick="event.stopPropagation();goToTecnico('${unitSelectValue(u)}')"
-             title="Enviar técnico imediatamente">🚨 Técnico</button>
-         </div>`
-      : '';
-    // H2: data relativa mostrada com data real entre parênteses
-    const dataLbl = `📅 ${u.time} (${relToDate(u.time)})`;
-    return `
-    <div class="unit-card" onclick="openUnit('${u.id}')">
-      <div class="unit-card__thumb">${u.ico}</div>
-      <div class="unit-card__body">
-        <div class="unit-card__addr">${u.addr}</div>
-        <div class="unit-card__desc">${u.desc}</div>
-        <div class="unit-card__meta">
-          <span>${dataLbl}</span>
-          ${prioTag(u.prio, u.risk)}
+  function renderCards() {
+    el.innerHTML = data.map(u => {
+      // H7: botão de ação rápida apenas para unidades de alta prioridade (>70%)
+      const qa = u.risk > 70
+        ? `<div class="unit-card__qa">
+             <button class="btn btn--danger btn--sm"
+               onclick="event.stopPropagation();goToTecnico('${unitSelectValue(u)}')"
+               title="Enviar técnico imediatamente">🚨 Técnico</button>
+           </div>`
+        : '';
+      // H2: data relativa mostrada com data real entre parênteses
+      const dataLbl = `📅 ${u.time} (${relToDate(u.time)})`;
+      return `
+      <div class="unit-card" onclick="openUnit('${u.id}')">
+        <div class="unit-card__thumb">${u.ico}</div>
+        <div class="unit-card__body">
+          <div class="unit-card__addr">${u.addr}</div>
+          <div class="unit-card__desc">${u.desc}</div>
+          <div class="unit-card__meta">
+            <span>${dataLbl}</span>
+            ${prioTag(u.prio, u.risk)}
+          </div>
         </div>
+        <div class="unit-card__loc">${u.district}</div>
+        ${qa}
+        <div class="unit-card__arrow">▶</div>
+      </div>`;
+    }).join('');
+  }
+  if (withSkeleton) {
+    el.innerHTML = Array(Math.min(data.length, 5)).fill(`
+    <div class="unit-skeleton">
+      <div class="unit-skeleton__thumb skeleton"></div>
+      <div class="unit-skeleton__body">
+        <div class="unit-skeleton__line unit-skeleton__line--title skeleton"></div>
+        <div class="unit-skeleton__line unit-skeleton__line--desc skeleton"></div>
+        <div class="unit-skeleton__line unit-skeleton__line--short skeleton"></div>
       </div>
-      <div class="unit-card__loc">${u.district}</div>
-      ${qa}
-      <div class="unit-card__arrow">▶</div>
-    </div>`;
-  }).join('');
+    </div>`).join('');
+    setTimeout(renderCards, 500);
+  } else {
+    renderCards();
+  }
 }
 
 // Maps unit IDs to the exact value strings used in the Técnico select (must match option[value])
@@ -1607,22 +1668,66 @@ function toast(msg) {
 
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
 
-function renderBarChart() {
+function renderLineChart() {
   const vals = [145,132,280,165,420,198,175,160,155,148,142,138];
-  const max = Math.max(...vals);
-  document.getElementById('bar-chart').innerHTML = vals.map(v => {
-    const h = Math.round((v/max)*150);
-    const col = v>250?'var(--danger)':v>180?'var(--warn)':'var(--accent)';
-    return `<div class="bar-wrap">
-      <span class="bar-val">${v}</span>
-      <div class="bar" style="height:${h}px;background:${col};opacity:.82"></div>
-    </div>`;
+  const labels = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const W=500, H=150, PL=32, PR=8, PT=10, PB=5;
+  const cW=W-PL-PR, cH=H-PT-PB;
+  const max=Math.max(...vals);
+  const xi=i=>PL+(i/(vals.length-1))*cW;
+  const yv=v=>PT+(1-v/max)*cH;
+  const line=vals.map((v,i)=>`${i?'L':'M'}${xi(i).toFixed(1)},${yv(v).toFixed(1)}`).join(' ');
+  const area=line+` L${xi(vals.length-1).toFixed(1)},${(PT+cH).toFixed(1)} L${xi(0).toFixed(1)},${(PT+cH).toFixed(1)} Z`;
+  const grids=[0,150,300,450].map(v=>{
+    const yp=yv(v);
+    return `<line x1="${PL}" y1="${yp.toFixed(1)}" x2="${W-PR}" y2="${yp.toFixed(1)}" stroke="#E5E7EB" stroke-width="1"/>
+    <text x="${(PL-3).toFixed(1)}" y="${(yp+3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="#9CA3AF">${v}</text>`;
   }).join('');
+  const dots=vals.map((v,i)=>{
+    const col=v>250?'var(--danger)':v>180?'var(--warn)':'var(--accent)';
+    const lbl=`${labels[i]}: ${v} kWh`;
+    return `<circle cx="${xi(i).toFixed(1)}" cy="${yv(v).toFixed(1)}" r="4.5" fill="${col}" stroke="#fff" stroke-width="2" style="cursor:pointer" onmouseenter="showChartTip(event,'${lbl}')" onmouseleave="hideChartTip()"><title>${lbl}</title></circle>`;
+  }).join('');
+  const xlbls=labels.map((l,i)=>
+    `<text x="${xi(i).toFixed(1)}" y="${(H+3).toFixed(1)}" text-anchor="middle" font-size="9.5" fill="#9CA3AF">${l}</text>`
+  ).join('');
+  document.getElementById('bar-chart').innerHTML=`<div style="position:relative">
+  <svg viewBox="0 0 ${W} ${H+14}" style="width:100%;display:block;overflow:visible">
+    <defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="var(--accent)" stop-opacity=".18"/>
+      <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/>
+    </linearGradient></defs>
+    ${grids}
+    <path d="${area}" fill="url(#cg)"/>
+    <path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${dots}${xlbls}
+  </svg>
+  <div id="chart-tip" style="position:absolute;background:rgba(45,43,94,.93);color:#fff;padding:4px 9px;border-radius:5px;font-size:11px;font-weight:600;pointer-events:none;display:none;z-index:10;transform:translate(-50%,-120%);white-space:nowrap"></div>
+</div>`;
+  const bm=document.querySelector('.bar-months');
+  if(bm)bm.style.display='none';
+}
+
+function showChartTip(e, text) {
+  const tip=document.getElementById('chart-tip');
+  if(!tip)return;
+  const svg=e.target.closest('svg');
+  const vb=svg.viewBox.baseVal;
+  const cx=parseFloat(e.target.getAttribute('cx'));
+  const cy=parseFloat(e.target.getAttribute('cy'));
+  tip.style.left=(cx/vb.width*100)+'%';
+  tip.style.top=(cy/vb.height*100)+'%';
+  tip.textContent=text;
+  tip.style.display='block';
+}
+function hideChartTip() {
+  const tip=document.getElementById('chart-tip');
+  if(tip)tip.style.display='none';
 }
 
 function initApp() {
-  renderUnits(UNITS);
-  renderBarChart();
+  renderUnits(UNITS, true);
+  renderLineChart();
   go('view-unidades');
 
   const today = new Date().toISOString().split('T')[0];
