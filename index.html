@@ -650,8 +650,11 @@
                   <span class="field-err" id="err-ldate"></span>
                 </div>
                 <div>
-                  <label class="form-label">Hora *</label>
-                  <input class="form-input" type="time" required>
+                  <label class="form-label" for="leitura-hora">Hora *</label>
+                  <input class="form-input" id="leitura-hora" type="time" required
+                    oninvalid="showFieldErr('err-lhora','Informe a hora da leitura.')"
+                    oninput="clearFieldErr('err-lhora')">
+                  <span class="field-err" id="err-lhora"></span>
                 </div>
                 <div>
                   <label class="form-label">Funcionário Responsável</label>
@@ -866,25 +869,25 @@
                     <td>15/05/2026</td><td>UC-001</td><td>3.450</td><td>+420 kWh</td>
                     <td style="color:var(--danger);font-weight:600">+148%</td>
                     <td><span class="tag tag--danger">Anomalia</span></td>
-                    <td><button class="btn btn--outline btn--sm" onclick="toast('Detalhes da leitura de 15/05')">Detalhes</button></td>
+                    <td><button class="btn btn--outline btn--sm" onclick="openReading('r0515')">Detalhes</button></td>
                   </tr>
                   <tr>
                     <td>15/04/2026</td><td>UC-001</td><td>3.030</td><td>+180 kWh</td>
                     <td style="color:var(--warn);font-weight:600">+22%</td>
                     <td><span class="tag tag--warn">Suspeito</span></td>
-                    <td><button class="btn btn--outline btn--sm" onclick="toast('Detalhes da leitura de 15/04')">Detalhes</button></td>
+                    <td><button class="btn btn--outline btn--sm" onclick="openReading('r0415')">Detalhes</button></td>
                   </tr>
                   <tr>
                     <td>15/03/2026</td><td>UC-001</td><td>2.850</td><td>+170 kWh</td>
                     <td style="color:var(--ok);font-weight:600">+3%</td>
                     <td><span class="tag tag--ok">Normal</span></td>
-                    <td><button class="btn btn--outline btn--sm" onclick="toast('Detalhes da leitura de 15/03')">Detalhes</button></td>
+                    <td><button class="btn btn--outline btn--sm" onclick="openReading('r0315')">Detalhes</button></td>
                   </tr>
                   <tr>
                     <td>15/02/2026</td><td>UC-001</td><td>2.680</td><td>+165 kWh</td>
                     <td style="color:var(--ok);font-weight:600">-1%</td>
                     <td><span class="tag tag--ok">Normal</span></td>
-                    <td><button class="btn btn--outline btn--sm" onclick="toast('Detalhes da leitura de 15/02')">Detalhes</button></td>
+                    <td><button class="btn btn--outline btn--sm" onclick="openReading('r0215')">Detalhes</button></td>
                   </tr>
                 </tbody>
               </table>
@@ -1233,6 +1236,9 @@
       <p style="color:var(--muted);margin-bottom:4px">Atalhos disponíveis no sistema:</p>
       <div style="display:flex;flex-direction:column;gap:8px">
         <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--bg);border-radius:var(--r)">
+          <span>Ir para Unidades Consumidoras</span><span><kbd class="kbd">Alt</kbd> + <kbd class="kbd">U</kbd></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--bg);border-radius:var(--r)">
           <span>Abrir Nova Leitura</span><span><kbd class="kbd">Alt</kbd> + <kbd class="kbd">L</kbd></span>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--bg);border-radius:var(--r)">
@@ -1240,6 +1246,9 @@
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--bg);border-radius:var(--r)">
           <span>Ir para o Mapa</span><span><kbd class="kbd">Alt</kbd> + <kbd class="kbd">M</kbd></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--bg);border-radius:var(--r)">
+          <span>Ir para o Histórico</span><span><kbd class="kbd">Alt</kbd> + <kbd class="kbd">H</kbd></span>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--bg);border-radius:var(--r)">
           <span>Abrir Painel de Indicadores</span><span><kbd class="kbd">Alt</kbd> + <kbd class="kbd">P</kbd></span>
@@ -1254,6 +1263,20 @@
     </div>
     <div class="form-actions" style="border:none;padding-top:16px;margin-top:6px;border-top:1px solid var(--border)">
       <button class="btn btn--primary btn--sm" onclick="closeModal('modal-help')">Entendido</button>
+    </div>
+  </div>
+</div>
+
+<!-- H4: Modal de detalhes da leitura -->
+<div class="modal-bd" id="modal-reading">
+  <div class="modal" style="max-width:480px">
+    <div class="modal__hd">
+      <h3 class="modal__title" id="modal-reading-title">Detalhes da Leitura</h3>
+      <button class="modal__close" onclick="closeModal('modal-reading')">✕</button>
+    </div>
+    <div id="modal-reading-body"></div>
+    <div class="form-actions" style="border:none;padding-top:16px;margin-top:14px;border-top:1px solid var(--border)">
+      <button class="btn btn--outline btn--sm" onclick="closeModal('modal-reading')">Fechar</button>
     </div>
   </div>
 </div>
@@ -1800,6 +1823,51 @@ function openProtocolo(num) {
   openModal('modal-protocolo');
 }
 
+// H4: dados e modal de detalhes das leituras do Histórico
+const READINGS = [
+  { key:'r0515', date:'15/05/2026', unit:'UC-001', addr:'Rua das Acácias, 63',
+    kwh:3450, prev:3030, delta:'+420 kWh', pct:'+148%', pctClass:'danger',
+    status:'Anomalia', statusClass:'danger', tecnico:'Matheus Johnsson',
+    obs:'Consumo 148% acima da média dos últimos 12 meses. Modelo de IA aponta alta probabilidade de desvio (87%). Protocolo de inspeção #2026-0087 aberto.' },
+  { key:'r0415', date:'15/04/2026', unit:'UC-001', addr:'Rua das Acácias, 63',
+    kwh:3030, prev:2850, delta:'+180 kWh', pct:'+22%', pctClass:'warn',
+    status:'Suspeito', statusClass:'warn', tecnico:'Matheus Johnsson',
+    obs:'Variação acima do esperado para o período. Padrão monitorado. Sem protocolo aberto — acompanhar nas próximas leituras.' },
+  { key:'r0315', date:'15/03/2026', unit:'UC-001', addr:'Rua das Acácias, 63',
+    kwh:2850, prev:2680, delta:'+170 kWh', pct:'+3%', pctClass:'ok',
+    status:'Normal', statusClass:'ok', tecnico:'Matheus Johnsson',
+    obs:'Consumo dentro dos parâmetros históricos. Nenhuma anomalia detectada pelo modelo de IA.' },
+  { key:'r0215', date:'15/02/2026', unit:'UC-001', addr:'Rua das Acácias, 63',
+    kwh:2680, prev:2515, delta:'+165 kWh', pct:'-1%', pctClass:'ok',
+    status:'Normal', statusClass:'ok', tecnico:'Matheus Johnsson',
+    obs:'Consumo regular. Leve queda em relação ao mês anterior dentro da sazonalidade esperada para o período.' },
+];
+
+function openReading(key) {
+  const r = READINGS.find(x => x.key === key);
+  if (!r) return;
+  document.getElementById('modal-reading-title').textContent = 'Leitura — ' + r.date;
+  document.getElementById('modal-reading-body').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;margin-bottom:14px">
+      <div><div style="font-size:11px;color:var(--muted);margin-bottom:3px">UNIDADE</div><strong>${r.unit}</strong></div>
+      <div><div style="font-size:11px;color:var(--muted);margin-bottom:3px">DATA</div><strong>${r.date}</strong></div>
+      <div style="grid-column:1/-1"><div style="font-size:11px;color:var(--muted);margin-bottom:3px">ENDEREÇO</div><strong>${r.addr}</strong></div>
+      <div><div style="font-size:11px;color:var(--muted);margin-bottom:3px">LEITURA ATUAL</div><strong>${r.kwh.toLocaleString('pt-BR')} kWh</strong></div>
+      <div><div style="font-size:11px;color:var(--muted);margin-bottom:3px">LEITURA ANTERIOR</div><strong>${r.prev.toLocaleString('pt-BR')} kWh</strong></div>
+      <div><div style="font-size:11px;color:var(--muted);margin-bottom:3px">CONSUMO</div><strong>${r.delta}</strong></div>
+      <div><div style="font-size:11px;color:var(--muted);margin-bottom:3px">VARIAÇÃO</div>
+        <strong style="color:var(--${r.pctClass})">${r.pct}</strong></div>
+      <div><div style="font-size:11px;color:var(--muted);margin-bottom:3px">STATUS IA</div>
+        <span class="tag tag--${r.statusClass}">${r.status}</span></div>
+      <div style="grid-column:1/-1"><div style="font-size:11px;color:var(--muted);margin-bottom:3px">LEITURISTA</div><strong>${r.tecnico}</strong></div>
+    </div>
+    <div style="padding:12px;background:var(--bg);border-radius:var(--r);font-size:13px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px">Observações do Sistema</div>
+      <p style="color:var(--text);line-height:1.5">${r.obs}</p>
+    </div>`;
+  openModal('modal-reading');
+}
+
 // H10: alterna abas do modal de ajuda
 function switchHelpTab(tab, btn) {
   document.querySelectorAll('.help-tab').forEach(t => t.classList.remove('active'));
@@ -1817,9 +1885,11 @@ document.addEventListener('keydown', function(e) {
   const tag = document.activeElement.tagName;
   const typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
   if (e.altKey && !typing) {
+    if (e.key === 'u' || e.key === 'U') { e.preventDefault(); go('view-unidades'); }
     if (e.key === 'l' || e.key === 'L') { e.preventDefault(); go('view-leitura'); }
     if (e.key === 't' || e.key === 'T') { e.preventDefault(); go('view-tecnico'); }
     if (e.key === 'm' || e.key === 'M') { e.preventDefault(); go('view-mapa'); }
+    if (e.key === 'h' || e.key === 'H') { e.preventDefault(); go('view-historico'); }
     if (e.key === 'p' || e.key === 'P') { e.preventDefault(); go('view-painel'); }
   }
   if (e.key === '?' && !typing) { openModal('modal-help'); }
