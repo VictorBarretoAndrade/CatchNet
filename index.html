@@ -835,7 +835,7 @@
 
           <div class="dash-grid mb-24">
             <div class="card card--p">
-              <h3 style="font-size:14px;font-weight:700;margin-bottom:14px">Consumo Mensal (kWh) — UC-001</h3>
+              <h3 id="hist-chart-title" style="font-size:14px;font-weight:700;margin-bottom:14px">Consumo Mensal (kWh) — UC-001</h3>
               <div class="bar-chart" id="bar-chart"></div>
               <div class="bar-months">
                 <span>Jan</span><span>Fev</span><span>Mar</span><span>Abr</span><span>Mai</span><span>Jun</span>
@@ -1393,6 +1393,7 @@ function doConsultar() {
       return inDate && inUnit;
     });
     renderHistoricoTable(filtered);
+    renderLineChart(unitFilter || '', filtered);
     const n = filtered.length;
     toast(`✅ ${n} registro${n!==1?'s':''} encontrado${n!==1?'s':''}!`);
   }, 700);
@@ -1682,9 +1683,38 @@ function toast(msg) {
 
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
 
-function renderLineChart() {
-  const vals = [145,132,280,165,420,198,175,160,155,148,142,138];
-  const labels = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+function renderLineChart(ucid, data) {
+  const MONTH = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  let vals, labels, title;
+
+  if (!ucid && !data) {
+    // Padrão inicial: UC-001 hardcoded
+    vals   = [145,132,280,165,420,198,175,160,155,148,142,138];
+    labels = MONTH;
+    title  = 'Consumo Mensal (kWh) — UC-001';
+  } else if (!data || !data.length) {
+    document.getElementById('bar-chart').innerHTML =
+      '<div style="padding:40px;text-align:center;color:var(--muted);font-size:13px">Sem leituras para exibir no período selecionado.</div>';
+    const t = document.getElementById('hist-chart-title');
+    if (t) t.textContent = ucid ? `Consumo Mensal (kWh) — ${ucid}` : 'Consumo Mensal (kWh)';
+    return;
+  } else {
+    const byMonth = {};
+    data.forEach(r => {
+      if (!r.isoDate) return;
+      const d   = new Date(r.isoDate + 'T00:00');
+      const key = r.isoDate.substring(0, 7);
+      if (!byMonth[key]) byMonth[key] = { lbl: `${MONTH[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`, kwh: 0 };
+      byMonth[key].kwh += r.kwh;
+    });
+    const sorted = Object.keys(byMonth).sort();
+    labels = sorted.map(k => byMonth[k].lbl);
+    vals   = sorted.map(k => byMonth[k].kwh);
+    title  = ucid ? `Consumo Mensal (kWh) — ${ucid}` : 'Consumo Mensal (kWh) — Todas as UCs';
+  }
+
+  const titleEl = document.getElementById('hist-chart-title');
+  if (titleEl) titleEl.textContent = title;
   const W=500, H=150, PL=32, PR=8, PT=10, PB=5;
   const cW=W-PL-PR, cH=H-PT-PB;
   const max=Math.max(...vals);
