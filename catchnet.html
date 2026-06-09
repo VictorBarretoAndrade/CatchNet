@@ -814,9 +814,9 @@
                 <label class="form-label">Unidade Consumidora</label>
                 <select class="form-select" id="hist-unit-sel">
                   <option value="">Todas as unidades</option>
-                  <option value="UC-001">UC-001 · Rua das Acácias, 63</option>
-                  <option value="UC-003">UC-003 · Av. Vital Brasil Filho, 154</option>
-                  <option value="UC-007">UC-007 · Travessa da Boa Vista, 7</option>
+                  <option value="UC-00001">UC-00001 · Rua das Acácias, 63</option>
+                  <option value="UC-00003">UC-00003 · Av. Vital Brasil Filho, 154</option>
+                  <option value="UC-00007">UC-00007 · Travessa da Boa Vista, 7</option>
                 </select>
               </div>
               <div>
@@ -835,7 +835,7 @@
 
           <div class="dash-grid mb-24">
             <div class="card card--p">
-              <h3 id="hist-chart-title" style="font-size:14px;font-weight:700;margin-bottom:14px">Consumo Mensal (kWh) — UC-001</h3>
+              <h3 id="hist-chart-title" style="font-size:14px;font-weight:700;margin-bottom:14px">Consumo Mensal (kWh) — UC-00001</h3>
               <div class="bar-chart" id="bar-chart"></div>
               <div class="bar-months">
                 <span>Jan</span><span>Fev</span><span>Mar</span><span>Abr</span><span>Mai</span><span>Jun</span>
@@ -1688,10 +1688,10 @@ function renderLineChart(ucid, data) {
   let vals, labels, title;
 
   if (!ucid && !data) {
-    // Padrão inicial: UC-001 hardcoded
+    // Padrão inicial: UC-00001 hardcoded
     vals   = [145,132,280,165,420,198,175,160,155,148,142,138];
     labels = MONTH;
-    title  = 'Consumo Mensal (kWh) — UC-001';
+    title  = 'Consumo Mensal (kWh) — UC-00001';
   } else if (!data || !data.length) {
     document.getElementById('bar-chart').innerHTML =
       '<div style="padding:40px;text-align:center;color:var(--muted);font-size:13px">Sem leituras para exibir no período selecionado.</div>';
@@ -1954,19 +1954,19 @@ function openProtocolo(num) {
 
 // H4: dados das leituras do Histórico — mutável (novas leituras são adicionadas aqui)
 let leituras = [
-  { key:'r0515', date:'15/05/2026', isoDate:'2026-05-15', unit:'UC-001', addr:'Rua das Acácias, 63',
+  { key:'r0515', date:'15/05/2026', isoDate:'2026-05-15', unit:'UC-00001', addr:'Rua das Acácias, 63',
     kwh:3450, prev:3030, delta:'+420 kWh', pct:'+148%', pctClass:'danger',
     status:'Anomalia', statusClass:'danger', hora:'08:30', tecnico:'Matheus Johnsson',
     obs:'Consumo 148% acima da média dos últimos 12 meses. Modelo de IA aponta alta probabilidade de desvio (87%). Protocolo de inspeção #2026-0087 aberto.' },
-  { key:'r0415', date:'15/04/2026', isoDate:'2026-04-15', unit:'UC-001', addr:'Rua das Acácias, 63',
+  { key:'r0415', date:'15/04/2026', isoDate:'2026-04-15', unit:'UC-00001', addr:'Rua das Acácias, 63',
     kwh:3030, prev:2850, delta:'+180 kWh', pct:'+22%', pctClass:'warn',
     status:'Suspeito', statusClass:'warn', hora:'09:15', tecnico:'Matheus Johnsson',
     obs:'Variação acima do esperado para o período. Padrão monitorado. Sem protocolo aberto — acompanhar nas próximas leituras.' },
-  { key:'r0315', date:'15/03/2026', isoDate:'2026-03-15', unit:'UC-001', addr:'Rua das Acácias, 63',
+  { key:'r0315', date:'15/03/2026', isoDate:'2026-03-15', unit:'UC-00001', addr:'Rua das Acácias, 63',
     kwh:2850, prev:2680, delta:'+170 kWh', pct:'+3%', pctClass:'ok',
     status:'Normal', statusClass:'ok', hora:'08:45', tecnico:'Matheus Johnsson',
     obs:'Consumo dentro dos parâmetros históricos. Nenhuma anomalia detectada pelo modelo de IA.' },
-  { key:'r0215', date:'15/02/2026', isoDate:'2026-02-15', unit:'UC-001', addr:'Rua das Acácias, 63',
+  { key:'r0215', date:'15/02/2026', isoDate:'2026-02-15', unit:'UC-00001', addr:'Rua das Acácias, 63',
     kwh:2680, prev:2515, delta:'+165 kWh', pct:'-1%', pctClass:'ok',
     status:'Normal', statusClass:'ok', hora:'08:30', tecnico:'Matheus Johnsson',
     obs:'Consumo regular. Leve queda em relação ao mês anterior dentro da sazonalidade esperada para o período.' },
