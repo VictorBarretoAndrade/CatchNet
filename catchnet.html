@@ -330,6 +330,12 @@
     .kbd{display:inline-block;background:#F3F4F6;border:1px solid #D1D5DB;border-radius:4px;
       padding:1px 6px;font-size:11px;font-family:monospace;color:var(--text);line-height:1.6}
 
+    /* ── Badge pulse ───────────────────────────── */
+    @keyframes badgePulse{0%,100%{transform:scale(1)}40%{transform:scale(1.6)}}
+    .badge-pulse{animation:badgePulse .35s ease 3}
+    /* ── Novo alerta na lista — highlight ───────── */
+    .alert-item--new{animation:fadeInUp .3s ease}
+
     /* ── Skeleton loader ───────────────────────── */
     @keyframes shimmer{0%{background-position:-600px 0}100%{background-position:600px 0}}
     .skeleton{background:linear-gradient(to right,#F0F1F3 4%,#E5E7EB 25%,#F0F1F3 36%)
@@ -462,7 +468,7 @@
           <!-- H10: botão de ajuda -->
           <button class="help-btn" onclick="openModal('modal-help')" title="Ajuda e Glossário">?</button>
           <button class="notif-btn" onclick="openModal('modal-alerts')" title="Alertas">
-            🔔<span class="badge">3</span>
+            🔔<span class="badge" id="notif-badge">3</span>
           </button>
           <button class="btn btn--outline btn--sm" onclick="doLogout()">Sair</button>
         </div>
@@ -928,32 +934,7 @@
             <div>
               <div class="card card--p mb-20">
                 <h3 style="font-size:14px;font-weight:700;margin-bottom:14px">Alertas Recentes</h3>
-                <div class="alert-list">
-                  <div class="alert-item alert-item--danger">
-                    <div class="alert-item__ico">🚨</div>
-                    <div class="alert-item__body">
-                      <div class="alert-item__title">Furto provável — Travessa da Boa Vista, 7</div>
-                      <div class="alert-item__desc">Consumo zerado 15 dias + pico anômalo. Risco: 91%</div>
-                    </div>
-                    <div class="alert-item__time">Hoje 10:14</div>
-                  </div>
-                  <div class="alert-item alert-item--danger">
-                    <div class="alert-item__ico">⚡</div>
-                    <div class="alert-item__body">
-                      <div class="alert-item__title">Desvio crítico — Rua das Acácias, 63</div>
-                      <div class="alert-item__desc">+148% no período. Risco: 87%</div>
-                    </div>
-                    <div class="alert-item__time">Ontem 08:45</div>
-                  </div>
-                  <div class="alert-item alert-item--warn">
-                    <div class="alert-item__ico">⚠️</div>
-                    <div class="alert-item__body">
-                      <div class="alert-item__title">Padrão irregular — Rua Belém, 88</div>
-                      <div class="alert-item__desc">Flutuação incomum há 3 meses. Risco: 61%</div>
-                    </div>
-                    <div class="alert-item__time">14/05</div>
-                  </div>
-                </div>
+                <div class="alert-list" id="painel-alerts-list"></div>
               </div>
 
               <div class="card card--p">
@@ -1035,32 +1016,7 @@
       <h3 class="modal__title">🔔 Alertas do Sistema</h3>
       <button class="modal__close" onclick="closeModal('modal-alerts')">✕</button>
     </div>
-    <div class="alert-list">
-      <div class="alert-item alert-item--danger">
-        <div class="alert-item__ico">🚨</div>
-        <div class="alert-item__body">
-          <div class="alert-item__title">CRÍTICO — Travessa da Boa Vista, 7</div>
-          <div class="alert-item__desc">Probabilidade de furto: 91% · Aguardando inspeção</div>
-        </div>
-        <div class="alert-item__time">Hoje</div>
-      </div>
-      <div class="alert-item alert-item--danger">
-        <div class="alert-item__ico">⚡</div>
-        <div class="alert-item__body">
-          <div class="alert-item__title">Desvio crítico — Rua das Acácias, 63</div>
-          <div class="alert-item__desc">Consumo +148% acima da média · Risco: 87%</div>
-        </div>
-        <div class="alert-item__time">Ontem</div>
-      </div>
-      <div class="alert-item alert-item--warn">
-        <div class="alert-item__ico">⚠️</div>
-        <div class="alert-item__body">
-          <div class="alert-item__title">Anomalia — Rua Belém, 88</div>
-          <div class="alert-item__desc">Flutuação incomum detectada · Risco: 61%</div>
-        </div>
-        <div class="alert-item__time">14/05</div>
-      </div>
-    </div>
+    <div class="alert-list" id="alerts-list"></div>
     <div class="form-actions" style="border:none;padding-top:14px;margin-top:14px;border-top:1px solid var(--border)">
       <button class="btn btn--outline btn--sm" onclick="closeModal('modal-alerts')">Fechar</button>
       <button class="btn btn--primary btn--sm" onclick="closeModal('modal-alerts');go('view-tecnico')">Enviar Técnico</button>
@@ -1642,7 +1598,7 @@ function submitLeitura() {
       ? `Leitura registrada por ${new Date().toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'})}. Variação de ${pctStr} (${prevNum?.toLocaleString('pt-BR')} → ${kwhNum.toLocaleString('pt-BR')} kWh). Medidor: ${meter}.`
       : `Leitura inicial registrada. Sem histórico anterior para comparação. Medidor: ${meter}.`;
 
-    leituras.unshift({
+    const entry = {
       key: 'r_' + Date.now(),
       date: dateStr, isoDate,
       unit: ucid, addr,
@@ -1651,9 +1607,11 @@ function submitLeitura() {
       pctClass, status, statusClass: pctClass,
       hora, tecnico: 'Matheus Johnsson',
       obs: obsVal || obsAuto,
-    });
+    };
+    leituras.unshift(entry);
     updateHistUnitSel(ucid, addr);
     renderHistoricoTable(leituras);
+    if (entry.pctClass !== 'ok') addAlerta(entry);
 
     toast('✅ Leitura registrada e salva no Histórico!');
     setTimeout(() => go('view-unidades'), 1300);
@@ -1704,10 +1662,9 @@ function submitTecnico() {
 
 function openModal(id) {
   document.getElementById(id).classList.add('open');
-  // H1: badge some ao abrir alertas
   if (id === 'modal-alerts') {
-    const badge = document.querySelector('.notif-btn .badge');
-    if (badge) { badge.textContent = '0'; badge.style.opacity = '.35'; badge.style.background = 'var(--muted)'; }
+    alertas.forEach(a => a.read = true);
+    renderAlertas();
   }
 }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
@@ -1782,6 +1739,67 @@ function hideChartTip() {
   if(tip)tip.style.display='none';
 }
 
+// ── Sistema de alertas dinâmico ────────────────
+let alertas = [
+  { type:'danger', ico:'🚨', title:'CRÍTICO — Travessa da Boa Vista, 7',
+    desc:'Probabilidade de furto: 91% · Aguardando inspeção', time:'Hoje 10:14', read:false },
+  { type:'danger', ico:'⚡', title:'Desvio crítico — Rua das Acácias, 63',
+    desc:'Consumo +148% acima da média · Risco: 87%', time:'Ontem 08:45', read:false },
+  { type:'warn',   ico:'⚠️', title:'Padrão irregular — Rua Belém, 88',
+    desc:'Flutuação incomum detectada · Risco: 61%', time:'14/05', read:false },
+];
+
+function alertaHtml(a, isNew) {
+  return `<div class="alert-item alert-item--${a.type}${isNew ? ' alert-item--new' : ''}">
+    <div class="alert-item__ico">${a.ico}</div>
+    <div class="alert-item__body">
+      <div class="alert-item__title">${a.title}</div>
+      <div class="alert-item__desc">${a.desc}</div>
+    </div>
+    <div class="alert-item__time">${a.time}</div>
+  </div>`;
+}
+
+function renderAlertas() {
+  const mList = document.getElementById('alerts-list');
+  if (mList) {
+    mList.innerHTML = alertas.length
+      ? alertas.map((a, i) => alertaHtml(a, i === 0 && !a.read)).join('')
+      : '<div style="padding:22px;text-align:center;color:var(--muted);font-size:13px">Nenhum alerta no momento.</div>';
+  }
+  const pList = document.getElementById('painel-alerts-list');
+  if (pList) {
+    pList.innerHTML = alertas.slice(0, 3).map((a, i) => alertaHtml(a, i === 0 && !a.read)).join('');
+  }
+  const unread = alertas.filter(a => !a.read).length;
+  const badge = document.getElementById('notif-badge');
+  if (badge) {
+    badge.textContent = unread > 0 ? unread : '0';
+    badge.style.opacity = unread > 0 ? '1' : '.35';
+    badge.style.background = unread > 0 ? 'var(--danger)' : 'var(--muted)';
+  }
+}
+
+function addAlerta(r) {
+  const now = new Date();
+  const timeStr = `Hoje ${now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}`;
+  alertas.unshift({
+    type: r.pctClass,
+    ico:  r.pctClass === 'danger' ? '⚡' : '⚠️',
+    title: `${r.pctClass === 'danger' ? 'Anomalia detectada' : 'Variação suspeita'} — ${r.addr}`,
+    desc:  `${r.unit} · Consumo ${r.pct} em relação à leitura anterior`,
+    time:  timeStr,
+    read:  false,
+  });
+  renderAlertas();
+  const badge = document.getElementById('notif-badge');
+  if (badge) {
+    badge.classList.remove('badge-pulse');
+    void badge.offsetWidth;
+    badge.classList.add('badge-pulse');
+  }
+}
+
 function renderHistoricoTable(data) {
   const tbody = document.getElementById('hist-tbody');
   if (!tbody) return;
@@ -1831,6 +1849,7 @@ function initApp() {
   renderUnits(UNITS, true);
   renderLineChart();
   renderHistoricoTable(leituras);
+  renderAlertas();
   go('view-unidades');
 
   const today = new Date().toISOString().split('T')[0];
