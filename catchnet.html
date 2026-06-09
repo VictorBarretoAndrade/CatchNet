@@ -619,7 +619,7 @@
                   <input class="form-input" id="f-ucid" type="text" placeholder="Ex: UC-00123"
                     pattern="UC-\d{5}" required
                     oninvalid="showFieldErr('err-ucid','Formato inválido. Use UC-XXXXX, ex: UC-00123.')"
-                    oninput="clearFieldErr('err-ucid')">
+                    oninput="clearFieldErr('err-ucid');autoFillPrev()">
                   <span class="field-err" id="err-ucid"></span>
                 </div>
                 <div>
@@ -638,8 +638,8 @@
                 </div>
                 <div>
                   <label class="form-label">Leitura Anterior (kWh)</label>
-                  <input class="form-input" type="number"
-                    placeholder="Obtido automaticamente do SDE (Sistema da Distribuidora)"
+                  <input class="form-input" id="f-kwh-prev" type="number"
+                    placeholder="Preenchido automaticamente ao informar o ID da UC"
                     readonly style="background:#F9FAFB">
                 </div>
                 <div>
@@ -662,7 +662,7 @@
                 </div>
                 <div>
                   <label class="form-label">Tipo de Medidor</label>
-                  <select class="form-select">
+                  <select class="form-select" id="f-meter-type">
                     <option>Smart Meter Digital (Medidor Inteligente)</option>
                     <option>Medidor Analógico</option>
                     <option>Medidor Eletrônico</option>
@@ -670,7 +670,7 @@
                 </div>
                 <div class="fg--full">
                   <label class="form-label">Observações</label>
-                  <textarea class="form-textarea"
+                  <textarea class="form-textarea" id="f-obs"
                     placeholder="Estado do medidor, lacre, anomalias visuais…"></textarea>
                 </div>
               </div>
@@ -806,11 +806,11 @@
             <div class="fg">
               <div>
                 <label class="form-label">Unidade Consumidora</label>
-                <select class="form-select">
-                  <option>Todas as unidades</option>
-                  <option>UC-001 · Rua das Acácias, 63</option>
-                  <option>UC-003 · Av. Vital Brasil Filho, 154</option>
-                  <option>UC-007 · Travessa da Boa Vista, 7</option>
+                <select class="form-select" id="hist-unit-sel">
+                  <option value="">Todas as unidades</option>
+                  <option value="UC-001">UC-001 · Rua das Acácias, 63</option>
+                  <option value="UC-003">UC-003 · Av. Vital Brasil Filho, 154</option>
+                  <option value="UC-007">UC-007 · Travessa da Boa Vista, 7</option>
                 </select>
               </div>
               <div>
@@ -864,32 +864,7 @@
                 <thead>
                   <tr><th>Data</th><th>Unidade</th><th>Leitura (kWh)</th><th>Consumo</th><th>Variação</th><th>IA</th><th></th></tr>
                 </thead>
-                <tbody>
-                  <tr>
-                    <td>15/05/2026</td><td>UC-001</td><td>3.450</td><td>+420 kWh</td>
-                    <td style="color:var(--danger);font-weight:600">+148%</td>
-                    <td><span class="tag tag--danger">Anomalia</span></td>
-                    <td><button class="btn btn--outline btn--sm" onclick="openReading('r0515')">Detalhes</button></td>
-                  </tr>
-                  <tr>
-                    <td>15/04/2026</td><td>UC-001</td><td>3.030</td><td>+180 kWh</td>
-                    <td style="color:var(--warn);font-weight:600">+22%</td>
-                    <td><span class="tag tag--warn">Suspeito</span></td>
-                    <td><button class="btn btn--outline btn--sm" onclick="openReading('r0415')">Detalhes</button></td>
-                  </tr>
-                  <tr>
-                    <td>15/03/2026</td><td>UC-001</td><td>2.850</td><td>+170 kWh</td>
-                    <td style="color:var(--ok);font-weight:600">+3%</td>
-                    <td><span class="tag tag--ok">Normal</span></td>
-                    <td><button class="btn btn--outline btn--sm" onclick="openReading('r0315')">Detalhes</button></td>
-                  </tr>
-                  <tr>
-                    <td>15/02/2026</td><td>UC-001</td><td>2.680</td><td>+165 kWh</td>
-                    <td style="color:var(--ok);font-weight:600">-1%</td>
-                    <td><span class="tag tag--ok">Normal</span></td>
-                    <td><button class="btn btn--outline btn--sm" onclick="openReading('r0215')">Detalhes</button></td>
-                  </tr>
-                </tbody>
+                <tbody id="hist-tbody"></tbody>
               </table>
             </div>
           </div>
@@ -1449,13 +1424,21 @@ function doConsultar() {
   const fin = document.getElementById('hist-date-fin').value;
   if (!ini || !fin) { toast('⚠ Informe as datas inicial e final para consultar.'); return; }
   if (fin < ini) { toast('⚠ A Data Final não pode ser anterior à Data Inicial.'); return; }
+  const unitFilter = (document.getElementById('hist-unit-sel') || {}).value || '';
   const btn = document.getElementById('consultar-btn');
   btn.setAttribute('data-loading','1');
   btn.textContent = 'Consultando…';
   setTimeout(() => {
     btn.removeAttribute('data-loading');
     btn.textContent = 'Consultar';
-    toast('✅ Consulta realizada com sucesso!');
+    const filtered = leituras.filter(r => {
+      const inDate = !r.isoDate || (r.isoDate >= ini && r.isoDate <= fin);
+      const inUnit = !unitFilter || r.unit === unitFilter;
+      return inDate && inUnit;
+    });
+    renderHistoricoTable(filtered);
+    const n = filtered.length;
+    toast(`✅ ${n} registro${n!==1?'s':''} encontrado${n!==1?'s':''}!`);
   }, 700);
 }
 
@@ -1595,23 +1578,48 @@ function confirmLeitura(e) {
     if (first) first.focus();
     return;
   }
-  const ucid  = document.getElementById('f-ucid').value;
-  const addr  = document.getElementById('f-addr').value;
-  const kwh   = document.getElementById('f-kwh').value;
-  const date  = document.getElementById('leitura-date').value;
+  const ucid    = document.getElementById('f-ucid').value;
+  const addr    = document.getElementById('f-addr').value;
+  const kwh     = document.getElementById('f-kwh').value;
+  const date    = document.getElementById('leitura-date').value;
+  const prevEl  = document.getElementById('f-kwh-prev');
+  const prevNum = prevEl && prevEl.value ? parseFloat(prevEl.value) : null;
+  const kwhNum  = parseFloat(kwh) || 0;
   const dateStr = date ? new Date(date+'T00:00').toLocaleDateString('pt-BR') : '—';
+  const delta   = prevNum !== null ? kwhNum - prevNum : null;
+  const pct     = (prevNum !== null && prevNum > 0) ? ((kwhNum - prevNum) / prevNum * 100) : null;
+  const varStr  = pct !== null
+    ? `${delta >= 0 ? '+' : ''}${delta.toLocaleString('pt-BR')} kWh (${pct >= 0 ? '+' : ''}${Math.round(pct)}%)`
+    : '—';
+  const varColor = pct !== null && pct > 50 ? 'var(--danger)' : pct !== null && pct > 15 ? 'var(--warn)' : 'var(--ok)';
   document.getElementById('leitura-confirm-summary').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;
       padding:12px;background:var(--bg);border-radius:var(--r)">
       <div><span style="font-size:11px;color:var(--muted)">ID DA UC</span><br><strong>${ucid}</strong></div>
       <div><span style="font-size:11px;color:var(--muted)">DATA DA LEITURA</span><br><strong>${dateStr}</strong></div>
       <div style="grid-column:1/-1"><span style="font-size:11px;color:var(--muted)">ENDEREÇO</span><br><strong>${addr}</strong></div>
-      <div><span style="font-size:11px;color:var(--muted)">LEITURA ATUAL</span><br><strong>${kwh} kWh</strong></div>
+      <div><span style="font-size:11px;color:var(--muted)">LEITURA ATUAL</span><br><strong>${kwhNum.toLocaleString('pt-BR')} kWh</strong></div>
+      <div><span style="font-size:11px;color:var(--muted)">LEITURA ANTERIOR</span><br>
+        <strong>${prevNum !== null ? prevNum.toLocaleString('pt-BR') + ' kWh' : '—'}</strong></div>
+      <div style="grid-column:1/-1"><span style="font-size:11px;color:var(--muted)">VARIAÇÃO ESTIMADA</span><br>
+        <strong style="color:${varColor}">${varStr}</strong></div>
     </div>`;
   openModal('modal-confirm-leitura');
 }
 
 function submitLeitura() {
+  // Captura dados antes de resetar o formulário
+  const ucid    = document.getElementById('f-ucid').value.trim().toUpperCase();
+  const addr    = document.getElementById('f-addr').value.trim();
+  const kwhNum  = parseFloat(document.getElementById('f-kwh').value) || 0;
+  const prevEl  = document.getElementById('f-kwh-prev');
+  const prevNum = prevEl && prevEl.value ? parseFloat(prevEl.value) : null;
+  const isoDate = document.getElementById('leitura-date').value;
+  const hora    = document.getElementById('leitura-hora').value || '—';
+  const meter   = document.getElementById('f-meter-type') ? document.getElementById('f-meter-type').value : '—';
+  const obsEl   = document.getElementById('f-obs');
+  const obsVal  = obsEl ? obsEl.value.trim() : '';
+
   closeModal('modal-confirm-leitura');
   const btn = document.getElementById('confirm-leitura-btn');
   btn.setAttribute('data-loading','1');
@@ -1621,7 +1629,33 @@ function submitLeitura() {
     btn.textContent = 'Confirmar e Registrar';
     const form = document.getElementById('form-leitura');
     if (form) { form.reset(); form.classList.remove('was-validated'); }
-    toast('✅ Leitura registrada com sucesso!');
+
+    // Calcula variação e status
+    const dateStr  = isoDate ? new Date(isoDate+'T00:00').toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR');
+    const delta    = prevNum !== null ? kwhNum - prevNum : null;
+    const pct      = (prevNum !== null && prevNum > 0) ? ((kwhNum - prevNum) / prevNum * 100) : null;
+    const pctStr   = pct !== null ? `${pct >= 0 ? '+' : ''}${Math.round(pct)}%` : '—';
+    const deltaStr = delta !== null ? `${delta >= 0 ? '+' : ''}${delta.toLocaleString('pt-BR')} kWh` : '—';
+    const pctClass = pct !== null && pct > 50 ? 'danger' : pct !== null && pct > 15 ? 'warn' : 'ok';
+    const status   = pctClass === 'danger' ? 'Anomalia' : pctClass === 'warn' ? 'Suspeito' : 'Normal';
+    const obsAuto  = pct !== null
+      ? `Leitura registrada por ${new Date().toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'})}. Variação de ${pctStr} (${prevNum?.toLocaleString('pt-BR')} → ${kwhNum.toLocaleString('pt-BR')} kWh). Medidor: ${meter}.`
+      : `Leitura inicial registrada. Sem histórico anterior para comparação. Medidor: ${meter}.`;
+
+    leituras.unshift({
+      key: 'r_' + Date.now(),
+      date: dateStr, isoDate,
+      unit: ucid, addr,
+      kwh: kwhNum, prev: prevNum,
+      delta: deltaStr, pct: pctStr,
+      pctClass, status, statusClass: pctClass,
+      hora, tecnico: 'Matheus Johnsson',
+      obs: obsVal || obsAuto,
+    });
+    updateHistUnitSel(ucid, addr);
+    renderHistoricoTable(leituras);
+
+    toast('✅ Leitura registrada e salva no Histórico!');
     setTimeout(() => go('view-unidades'), 1300);
   }, 800);
 }
@@ -1748,9 +1782,55 @@ function hideChartTip() {
   if(tip)tip.style.display='none';
 }
 
+function renderHistoricoTable(data) {
+  const tbody = document.getElementById('hist-tbody');
+  if (!tbody) return;
+  if (!data || !data.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:28px;color:var(--muted)">Nenhum registro encontrado para os filtros selecionados.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.map(r => `
+    <tr>
+      <td>${r.date}</td>
+      <td>${r.unit}</td>
+      <td>${r.kwh.toLocaleString('pt-BR')}</td>
+      <td>${r.delta}</td>
+      <td style="color:var(--${r.pctClass});font-weight:600">${r.pct}</td>
+      <td><span class="tag tag--${r.statusClass}">${r.status}</span></td>
+      <td><button class="btn btn--outline btn--sm" onclick="openReading('${r.key}')">Detalhes</button></td>
+    </tr>`).join('');
+}
+
+function autoFillPrev() {
+  const ucid = document.getElementById('f-ucid').value.trim().toUpperCase();
+  const prevField = document.getElementById('f-kwh-prev');
+  if (!prevField) return;
+  const match = leituras.find(r => r.unit === ucid);
+  if (match) {
+    prevField.value = match.kwh;
+    prevField.style.borderColor = 'var(--ok)';
+  } else {
+    prevField.value = '';
+    prevField.style.borderColor = '';
+  }
+}
+
+function updateHistUnitSel(unit, addr) {
+  const sel = document.getElementById('hist-unit-sel');
+  if (!sel) return;
+  const exists = Array.from(sel.options).some(o => o.value === unit);
+  if (!exists) {
+    const opt = document.createElement('option');
+    opt.value = unit;
+    opt.textContent = `${unit} · ${addr}`;
+    sel.appendChild(opt);
+  }
+}
+
 function initApp() {
   renderUnits(UNITS, true);
   renderLineChart();
+  renderHistoricoTable(leituras);
   go('view-unidades');
 
   const today = new Date().toISOString().split('T')[0];
@@ -1823,37 +1903,38 @@ function openProtocolo(num) {
   openModal('modal-protocolo');
 }
 
-// H4: dados e modal de detalhes das leituras do Histórico
-const READINGS = [
-  { key:'r0515', date:'15/05/2026', unit:'UC-001', addr:'Rua das Acácias, 63',
+// H4: dados das leituras do Histórico — mutável (novas leituras são adicionadas aqui)
+let leituras = [
+  { key:'r0515', date:'15/05/2026', isoDate:'2026-05-15', unit:'UC-001', addr:'Rua das Acácias, 63',
     kwh:3450, prev:3030, delta:'+420 kWh', pct:'+148%', pctClass:'danger',
-    status:'Anomalia', statusClass:'danger', tecnico:'Matheus Johnsson',
+    status:'Anomalia', statusClass:'danger', hora:'08:30', tecnico:'Matheus Johnsson',
     obs:'Consumo 148% acima da média dos últimos 12 meses. Modelo de IA aponta alta probabilidade de desvio (87%). Protocolo de inspeção #2026-0087 aberto.' },
-  { key:'r0415', date:'15/04/2026', unit:'UC-001', addr:'Rua das Acácias, 63',
+  { key:'r0415', date:'15/04/2026', isoDate:'2026-04-15', unit:'UC-001', addr:'Rua das Acácias, 63',
     kwh:3030, prev:2850, delta:'+180 kWh', pct:'+22%', pctClass:'warn',
-    status:'Suspeito', statusClass:'warn', tecnico:'Matheus Johnsson',
+    status:'Suspeito', statusClass:'warn', hora:'09:15', tecnico:'Matheus Johnsson',
     obs:'Variação acima do esperado para o período. Padrão monitorado. Sem protocolo aberto — acompanhar nas próximas leituras.' },
-  { key:'r0315', date:'15/03/2026', unit:'UC-001', addr:'Rua das Acácias, 63',
+  { key:'r0315', date:'15/03/2026', isoDate:'2026-03-15', unit:'UC-001', addr:'Rua das Acácias, 63',
     kwh:2850, prev:2680, delta:'+170 kWh', pct:'+3%', pctClass:'ok',
-    status:'Normal', statusClass:'ok', tecnico:'Matheus Johnsson',
+    status:'Normal', statusClass:'ok', hora:'08:45', tecnico:'Matheus Johnsson',
     obs:'Consumo dentro dos parâmetros históricos. Nenhuma anomalia detectada pelo modelo de IA.' },
-  { key:'r0215', date:'15/02/2026', unit:'UC-001', addr:'Rua das Acácias, 63',
+  { key:'r0215', date:'15/02/2026', isoDate:'2026-02-15', unit:'UC-001', addr:'Rua das Acácias, 63',
     kwh:2680, prev:2515, delta:'+165 kWh', pct:'-1%', pctClass:'ok',
-    status:'Normal', statusClass:'ok', tecnico:'Matheus Johnsson',
+    status:'Normal', statusClass:'ok', hora:'08:30', tecnico:'Matheus Johnsson',
     obs:'Consumo regular. Leve queda em relação ao mês anterior dentro da sazonalidade esperada para o período.' },
 ];
 
 function openReading(key) {
-  const r = READINGS.find(x => x.key === key);
+  const r = leituras.find(x => x.key === key);
   if (!r) return;
   document.getElementById('modal-reading-title').textContent = 'Leitura — ' + r.date;
+  const prevStr = r.prev !== null && r.prev !== undefined ? r.prev.toLocaleString('pt-BR') + ' kWh' : '—';
   document.getElementById('modal-reading-body').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;margin-bottom:14px">
       <div><div style="font-size:11px;color:var(--muted);margin-bottom:3px">UNIDADE</div><strong>${r.unit}</strong></div>
-      <div><div style="font-size:11px;color:var(--muted);margin-bottom:3px">DATA</div><strong>${r.date}</strong></div>
+      <div><div style="font-size:11px;color:var(--muted);margin-bottom:3px">DATA / HORA</div><strong>${r.date} ${r.hora || ''}</strong></div>
       <div style="grid-column:1/-1"><div style="font-size:11px;color:var(--muted);margin-bottom:3px">ENDEREÇO</div><strong>${r.addr}</strong></div>
       <div><div style="font-size:11px;color:var(--muted);margin-bottom:3px">LEITURA ATUAL</div><strong>${r.kwh.toLocaleString('pt-BR')} kWh</strong></div>
-      <div><div style="font-size:11px;color:var(--muted);margin-bottom:3px">LEITURA ANTERIOR</div><strong>${r.prev.toLocaleString('pt-BR')} kWh</strong></div>
+      <div><div style="font-size:11px;color:var(--muted);margin-bottom:3px">LEITURA ANTERIOR</div><strong>${prevStr}</strong></div>
       <div><div style="font-size:11px;color:var(--muted);margin-bottom:3px">CONSUMO</div><strong>${r.delta}</strong></div>
       <div><div style="font-size:11px;color:var(--muted);margin-bottom:3px">VARIAÇÃO</div>
         <strong style="color:var(--${r.pctClass})">${r.pct}</strong></div>
@@ -1862,7 +1943,7 @@ function openReading(key) {
       <div style="grid-column:1/-1"><div style="font-size:11px;color:var(--muted);margin-bottom:3px">LEITURISTA</div><strong>${r.tecnico}</strong></div>
     </div>
     <div style="padding:12px;background:var(--bg);border-radius:var(--r);font-size:13px">
-      <div style="font-size:11px;color:var(--muted);margin-bottom:5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px">Observações do Sistema</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px">Observações</div>
       <p style="color:var(--text);line-height:1.5">${r.obs}</p>
     </div>`;
   openModal('modal-reading');
